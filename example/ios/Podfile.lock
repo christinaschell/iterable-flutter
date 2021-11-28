@@ -1,0 +1,33 @@
+PODS:
+  - Flutter (1.0.0)
+  - iterable (0.0.1):
+    - Flutter
+    - Iterable-iOS-SDK
+  - Iterable-iOS-AppExtensions (6.3.4)
+  - Iterable-iOS-SDK (6.3.4)
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - iterable (from `.symlinks/plugins/iterable/ios`)
+  - Iterable-iOS-AppExtensions
+
+SPEC REPOS:
+  trunk:
+    - Iterable-iOS-AppExtensions
+    - Iterable-iOS-SDK
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  iterable:
+    :path: ".symlinks/plugins/iterable/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 50d75fe2f02b26cc09d224853bb45737f8b3214a
+  iterable: fb171f9639b6aac7a8e56f7b7dfa79e312048106
+  Iterable-iOS-AppExtensions: a0c6a50cbfc9c55549cb01eaf37e855e9df460ae
+  Iterable-iOS-SDK: 83217ce7a4c60373b9ea27126fd0f29c0b4382e6
+
+PODFILE CHECKSUM: 0caebe4de5adc92cece0d9bd12368ea7bba126b1
+
+COCOAPODS: 1.10.1
