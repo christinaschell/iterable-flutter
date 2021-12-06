@@ -31,6 +31,8 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
       getUserId(result: result)
     } else if call.method == "updateUser" {
       updateUser(call: call, result: result)
+    } else if call.method == "updateSubscriptions" {
+      updateSubscriptions(call: call)
     } else if call.method == "setEmailAndUserId" {
       setEmailAndUserId(call: call, result: result)
     } else if call.method == "trackEvent" {
@@ -41,6 +43,18 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
       trackPurchase(call: call)
     } else if call.method == "getLastPushPayload" {
       getLastPushPayload(result: result)
+    } else if call.method == "getInAppMessages" {
+      getInAppMessages(result: result)
+    } else if call.method == "showMessage" {
+      showMessage(call: call, result: result)
+    } else if call.method == "removeMessage" {
+      removeMessage(call: call)
+    } else if call.method == "setReadForMessage" {
+      setReadForMessage(call: call)
+    } else if call.method == "getHtmlInAppContent" {
+      getHtmlInAppContent(call: call, result: result)
+    } else if call.method == "setAutoDisplayPaused" {
+      setAutoDisplayPaused(call: call)
     } else {
       result(FlutterMethodNotImplemented);
     }
@@ -118,6 +132,27 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
     })
   }
 
+  func updateSubscriptions(call: FlutterMethodCall) {
+    //ITBInfo()
+    guard let arguments = call.arguments as? [String: Any] else {
+       return
+     }
+
+     let campaignId = arguments["campaignId"] as? NSNumber
+     let templateId = arguments["templateId"] as? NSNumber
+     let emailListIds = arguments["emailListIds"] as? [NSNumber]
+     let unsubscribedChannelIds = arguments["unsubscribedChannelIds"] as? [NSNumber]
+     let unsubscribedMessageTypeIds = arguments["unsubscribedMessageTypeIds"] as? [NSNumber]
+     let subscribedMessageTypeIds = arguments["subscribedMessageTypeIds"] as? [NSNumber]
+
+      IterableAPI.updateSubscriptions(emailListIds,
+                                      unsubscribedChannelIds: unsubscribedChannelIds,
+                                      unsubscribedMessageTypeIds: unsubscribedMessageTypeIds,
+                                      subscribedMessageTypeIds: subscribedMessageTypeIds,
+                                      campaignId: campaignId,
+                                      templateId: templateId)
+  }
+
   func setEmailAndUserId(call: FlutterMethodCall, result: @escaping FlutterResult) {
     //ITBInfo()
     guard let arguments = call.arguments as? [String: Any],
@@ -171,6 +206,99 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
     //ITBInfo()
     result(IterableAPI.lastPushPayload?.stringified ?? "")
   }
+    
+    // MARK: In-App Manager methods
+    func getInAppMessages(result: @escaping FlutterResult) {
+        //ITBInfo()
+        result(IterableAPI.inAppManager.getMessages().map { $0.dictionary })
+    }
+
+    func showMessage(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any],
+              let messageId = arguments["messageId"] as? String,
+              let consume = arguments["consume"] as? Bool else {
+                  return
+              }
+        
+        guard let message = IterableAPI.inAppManager.getMessage(withId: messageId) else {
+            ITBError("Could not find message with id: \(messageId)")
+            return
+        }
+
+        IterableAPI.inAppManager.show(message: message, consume: consume) { url in
+            result(url.map({$0.absoluteString}))
+        }
+    }
+
+    func removeMessage(call: FlutterMethodCall) {
+        guard let arguments = call.arguments as? [String: Any],
+              let messageId = arguments["messageId"] as? String,
+              let location = arguments["location"] as? NSNumber,
+              let source = arguments["source"] as? NSNumber else {
+                  return
+        }
+        
+        guard let message = IterableAPI.inAppManager.getMessage(withId: messageId) else {
+            ITBError("Could not find message with id: \(messageId)")
+            return
+        }
+        
+        if let inAppDeleteSource = InAppDeleteSource.from(number: source) {
+            IterableAPI.inAppManager.remove(message: message,
+                                            location: InAppLocation.from(number: location),
+                                            source: inAppDeleteSource)
+        } else {
+            IterableAPI.inAppManager.remove(message: message,
+                                            location: InAppLocation.from(number: location))
+        }
+    }
+
+    func setReadForMessage(call: FlutterMethodCall) {
+        guard let arguments = call.arguments as? [String: Any],
+              let messageId = arguments["messageId"] as? String,
+              let read = arguments["read"] as? Bool else {
+                  return
+        }
+        
+        guard let message = IterableAPI.inAppManager.getMessage(withId: messageId) else {
+            ITBError("Could not find message with id: \(messageId)")
+            return
+        }
+        
+        IterableAPI.inAppManager.set(read: read, forMessage: message)
+    }
+
+    func getHtmlInAppContent(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let arguments = call.arguments as? [String: Any],
+              let messageId = arguments["messageId"] as? String else {
+                  return
+        }
+        
+        guard let message = IterableAPI.inAppManager.getMessage(withId: messageId) else {
+            ITBError("Could not find message with id: \(messageId)")
+            //result("Could not find message with id: \(messageId)")
+            return
+        }
+        
+        guard let content = message.content as? IterableHtmlInAppContent else {
+            ITBError("Could not parse message content as HTML")
+            //result("Could not parse message content as HTML")
+            return
+        }
+        
+        result(content.dictionary)
+    }
+
+    func setAutoDisplayPaused(call: FlutterMethodCall) {
+        guard let arguments = call.arguments as? [String: Any],
+              let paused = arguments["paused"] as? Bool else {
+                  return
+        }
+        
+        DispatchQueue.main.async {
+            IterableAPI.inAppManager.isAutoDisplayPaused = paused
+        }
+    }
 
     // MARK: Private
     private func internalInitialize(withApiKey apiKey: String,
@@ -180,7 +308,6 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
                             result: @escaping FlutterResult) {
       //ITBInfo()
         
-      let launchOptions = createLaunchOptions(from: configDict)
       let iterableConfig = IterableConfig.from(configDict)
        if let urlHandlerPresent = configDict[IterableConstants.urlHandlerPresent] as? Bool, urlHandlerPresent == true {
            iterableConfig.urlDelegate = self
@@ -200,19 +327,14 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
         
         DispatchQueue.main.async {
             IterableAPI.initialize2(apiKey: apiKey,
-                                    launchOptions: launchOptions,
+                                    launchOptions: nil,
                                     config: iterableConfig,
                                     apiEndPointOverride: apiEndPointOverride) { completionResult in
                 result(completionResult)
             }
+
             IterableAPI.setDeviceAttribute(name: IterableConstants.sdkVersion, value: version)
         }
-    }
-    
-    private func createLaunchOptions(from config: [AnyHashable: Any]) -> [UIApplication.LaunchOptionsKey: Any]? {
-        var result = [UIApplication.LaunchOptionsKey: Any]()
-        result[UIApplication.LaunchOptionsKey.remoteNotification] = config[IterableConstants.remoteNotificationsEnabled]
-        return result
     }
 
     private func failure(from data: Data?, fallback message: String) -> String {

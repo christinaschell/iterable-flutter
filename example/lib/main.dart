@@ -1,14 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 import 'package:iterable/iterable.dart';
 import 'package:iterable/common.dart';
 import 'env.dart'; // TODO: Update env.example.dart
 import 'iterable_button.dart';
-
-// FIRST: Try to register for push on simulator again, otherwise set up FCM
 
 void main() {
   runApp(const MyApp());
@@ -23,9 +21,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   JsonEncoder encoder = const JsonEncoder.withIndent('  ');
-
-  // Create IterableConfig with desired settings
-  var config = IterableConfig();
+  final config = IterableConfig(inAppDisplayInterval: 1.0);
 
   @override
   void initState() {
@@ -33,6 +29,9 @@ class _MyAppState extends State<MyApp> {
   }
 
   ListView _identityListView() {
+    // Create IterableConfig with desired settings
+    // var config = IterableConfig();
+    // config.inAppDisplayInterval = 1.0;
     // Initialize Iterable
     Iterable.initialize(IterableEnv.apiKey, config).then((success) => {
           if (success) {debugPrint('Iterable Initialized')}
@@ -47,10 +46,10 @@ class _MyAppState extends State<MyApp> {
         IterableButton(
             title: 'Set Email',
             onPressed: () =>
-                Iterable.setEmail("christina.schell+flutter@iterable.com")),
+                Iterable.setEmail("christina.schell+flutter4@iterable.com")),
         IterableButton(
             title: 'Set User Id',
-            onPressed: () => Iterable.setUserId("flutterUserId1")),
+            onPressed: () => Iterable.setUserId("flutterUserId2")),
         // 2. [DONE] Get user email
         IterableButton(
             title: 'Get Email',
@@ -65,7 +64,7 @@ class _MyAppState extends State<MyApp> {
         IterableButton(
             title: 'Update Email',
             onPressed: () =>
-                Iterable.updateEmail("christina.schell+flutter2@iterable.com")
+                Iterable.updateEmail("christina.schell+flutter5@iterable.com")
                     .then((response) => debugPrint(encoder.convert(response)))),
         // 5. [DONE] Update user data
         IterableButton(
@@ -73,22 +72,28 @@ class _MyAppState extends State<MyApp> {
             onPressed: () =>
                 Iterable.updateUser({'newFlutterKey': 'def123'}, false)
                     .then((response) => debugPrint(encoder.convert(response)))),
+        // 14. [DONE] Update user subscriptions (Settings tab)
+        IterableButton(
+            title: 'Update User Subscriptions',
+            onPressed: () => Iterable.updateSubscriptions(
+                emailListIds: [1234],
+                subscribedMessageTypeIds: [12345],
+                unsubscribedChannelIds: [67890],
+                unsubscribedMessageTypeIds: [78901])),
+        // [DONE] Set email and user id
         IterableButton(
             title: 'Set Email and User Id',
             onPressed: () => {
                   Iterable.setEmailAndUserId(
-                          "christina.schell+flutter3@iterable.com",
-                          "flutterUserId2")
+                          "christina.schell+flutter6@iterable.com",
+                          "flutterUserId3")
                       .then((response) => debugPrint(encoder.convert(response)))
                 }),
         // 8. Push
         //  - [DONE] Foundation
         //  - [DONE] Rich Push
-        //  - try with FCM
         // 9. InApp
         //  - [DONE] Foundation
-        //  - try with FCM
-        // 13. Restyle and set up more realistic Sample app
         // 15. [DONE] Update user methods to return Future<string> of full error/success payloads
       ],
     );
@@ -129,45 +134,136 @@ class _MyAppState extends State<MyApp> {
       IterableButton(
           title: 'Get Last Push Payload',
           onPressed: () => {
+                // TODO: Fix to return a dictionary
                 Iterable.getLastPushPayload()
                     .then((payload) => debugPrint(encoder.convert(payload)))
-              })
-      // 11. Deeplinking
-      // 12. Expose getMessages method
-      // 14. Update user subscriptions (Settings tab)
+              }),
+      // 11. [Continue - Fix] Deeplinking
+      // 12. [DONE] Expose getMessages method
+      // [HERE] Other methods that RN exposes (trackInApp, trackPushOpen, etc)
       // 15. Implement delegates/listeners
+      // Implement JWT Authentication
+      // Deeplink handle method
+      // 13. [MAYBE] Restyle and set up more realistic Sample app
+      IterableButton(
+          title: 'Get In App Messages',
+          onPressed: () => {
+                Iterable.inAppManager
+                    .getMessages()
+                    .then((messages) => _logInAppMessages(messages))
+              }),
+      IterableButton(
+          title: 'Show In App Message',
+          onPressed: () => {
+                Iterable.inAppManager.getMessages().then((messages) => {
+                      if (messages.isEmpty)
+                        {_logInAppError("Show Message")}
+                      else
+                        {
+                          Iterable.inAppManager
+                              .showMessage(messages.first, true)
+                        }
+                    })
+              }),
+      IterableButton(
+          title: 'Remove In App Message',
+          onPressed: () => {
+                Iterable.inAppManager.getMessages().then((messages) => {
+                      if (messages.isEmpty)
+                        {_logInAppError("Remove Message")}
+                      else
+                        {
+                          Iterable.inAppManager.removeMessage(
+                              messages.first,
+                              IterableInAppLocation.inApp,
+                              IterableInAppDeleteSource.deleteButton)
+                        }
+                    })
+              }),
+      IterableButton(
+          title: 'Set Read For Message',
+          onPressed: () => {
+                Iterable.inAppManager.getMessages().then((messages) => {
+                      if (messages.isEmpty)
+                        {_logInAppError("Set Read For Message")}
+                      else
+                        {
+                          Iterable.inAppManager
+                              .setReadForMessage(messages.first, true)
+                        }
+                    })
+              }),
+      IterableButton(
+          title: 'Get HTML Content For Message',
+          onPressed: () => {
+                Iterable.inAppManager.getMessages().then((messages) => {
+                      if (messages.isEmpty)
+                        {_logInAppError("Get HTML Content For Message")}
+                      else
+                        {
+                          Iterable.inAppManager
+                              .getHtmlContentForMessage(messages.first)
+                              .then((content) => debugPrint(content.toJson()))
+                        }
+                    })
+              }),
+      IterableButton(
+          title: 'Set Auto Display Paused',
+          onPressed: () => Iterable.inAppManager.setAutoDisplayPaused(true))
     ]);
   }
 
   // Helper Methods
   List<IterableCommerceItem> _addToCartItems() {
     return [
-      IterableCommerceItem("abc123", "ABC", 9.99, 1, "abcsku123", null, null,
-          null, ["category1", "category2"], {"someItemKey1": "someItemValue1"}),
-      IterableCommerceItem("def456", "ABC", 19.99, 2, "defsku456", null, null,
-          null, ["category3", "category4"], {"someItemKey2": "someItemValue2"})
+      IterableCommerceItem("abc123", "ABC", 9.99, 1,
+          sku: "abcsku123",
+          categories: ["category1", "category2"],
+          dataFields: {"someItemKey1": "someItemValue1"}),
+      IterableCommerceItem("def456", "ABC", 19.99, 2,
+          sku: "defsku456",
+          categories: ["category3", "category4"],
+          dataFields: {"someItemKey2": "someItemValue2"})
     ];
   }
 
   List<IterableCommerceItem> _removeFromCartItems() {
     return [
-      IterableCommerceItem("abc123", "ABC", 9.99, 1, "abcsku123", null, null,
-          null, ["category1", "category2"], {"someItemKey1": "someItemValue1"})
+      IterableCommerceItem("abc123", "ABC", 9.99, 1,
+          sku: "abcsku123",
+          categories: ["category1", "category2"],
+          dataFields: {"someItemKey1": "someItemValue1"})
     ];
   }
 
   List<IterableCommerceItem> _updateQtyItems() {
     return [
-      IterableCommerceItem("abc123", "ABC", 9.99, 2, "abcsku123", null, null,
-          null, ["category1", "category2"], {"someItemKey1": "someItemValue1"}),
+      IterableCommerceItem("abc123", "ABC", 9.99, 2,
+          sku: "abcsku123",
+          categories: ["category1", "category2"],
+          dataFields: {"someItemKey1": "someItemValue1"}),
     ];
   }
 
   List<IterableCommerceItem> _purchaseItems() {
     return [
-      IterableCommerceItem("abc123", "ABC", 9.99, 2, "abcsku123", null, null,
-          null, ["category1", "category2"], {"someItemKey1": "someItemValue1"})
+      IterableCommerceItem("abc123", "ABC", 9.99, 2,
+          sku: "abcsku123",
+          categories: ["category1", "category2"],
+          dataFields: {"someItemKey1": "someItemValue1"})
     ];
+  }
+
+  void _logInAppError(String message) {
+    debugPrint("$message Failed. There are no in-app messages in the queue.");
+  }
+
+  void _logInAppMessages(List<IterableInAppMessage> messages) {
+    debugPrint('========= In-App Messages =========');
+    messages.asMap().forEach((index, message) => {
+          debugPrint('message #${index + 1}:'),
+          developer.log(jsonEncode(message.toJson()))
+        });
   }
 
   @override

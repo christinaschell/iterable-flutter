@@ -173,25 +173,7 @@ class IterableInAppTrigger {
   }
 }
 
-enum InAppContentType { html, alert, banner }
-
-class IterableInAppContentType {
-  late InAppContentType type;
-
-  IterableInAppContentType({required this.type});
-
-  int toInt() {
-    return type.index;
-  }
-
-  IterableInAppContentType.fromIndex(int index) {
-    type = InAppContentType.values[index];
-  }
-
-  static IterableInAppContentType from(int number) {
-    return IterableInAppContentType.fromIndex(number);
-  }
-}
+enum IterableInAppContentType { html, alert, banner }
 
 enum IterableInAppLocation { inApp, inbox }
 
@@ -218,69 +200,6 @@ class IterableInAppDeleteSource {
       IterableInAppDeleteSource._(100);
 }
 
-class IterableEdgeInsets {
-  late double top;
-  late double left;
-  late double bottom;
-  late double right;
-
-  IterableEdgeInsets(double top, double left, double bottom, double right) {
-    this.top = top;
-    this.left = left;
-    this.bottom = bottom;
-    this.right = right;
-  }
-
-  // Debug purposes only
-  dynamic toJson() {
-    return {'top': top, 'left': left, 'bottom': bottom, 'right': right};
-  }
-
-  static IterableEdgeInsets from(String json) {
-    final decodedEdgeInsets = jsonDecode(json) as Map<String, dynamic>;
-    return IterableEdgeInsets(
-        decodedEdgeInsets["top"] as double,
-        decodedEdgeInsets["left"] as double,
-        decodedEdgeInsets["bottom"] as double,
-        decodedEdgeInsets["right"] as double);
-  }
-}
-
-class IterableInAppContent {
-  late IterableInAppContentType type;
-}
-
-class IterableHtmlInAppContent implements IterableInAppContent {
-  @override
-  late IterableInAppContentType type;
-  late IterableEdgeInsets edgeInsets;
-  late String html;
-
-  IterableHtmlInAppContent(IterableInAppContentType type,
-      IterableEdgeInsets edgeInsets, String html) {
-    this.type = type;
-    this.edgeInsets = edgeInsets;
-    this.html = html;
-  }
-
-  // Debug purposes only
-  dynamic toJson() {
-    return {
-      'type': type.toInt(),
-      'edgeInsets': edgeInsets.toJson(),
-      'html': html
-    };
-  }
-
-  static IterableHtmlInAppContent from(Map<String, Object> dictionary) {
-    var encodedEdgeInsets = jsonEncode(dictionary["edgeInsets"]);
-    return IterableHtmlInAppContent(
-        IterableInAppContentType.from(dictionary["type"] as int),
-        IterableEdgeInsets.from(encodedEdgeInsets),
-        dictionary["html"] as String);
-  }
-}
-
 class IterableInboxMetadata {
   String? title;
   String? subtitle;
@@ -298,11 +217,121 @@ class IterableInboxMetadata {
   }
 }
 
+class IterableEdgeInset {
+  late int percentage;
+
+  IterableEdgeInset(int percentage) {
+    this.percentage = percentage;
+  }
+
+  static IterableEdgeInset from(Map<String, Object> dictionary) {
+    return IterableEdgeInset(dictionary["percentage"] as int);
+  }
+}
+
+class IterableInAppBackgroundColor {
+  late double alpha;
+  late String hex;
+
+  IterableInAppBackgroundColor(double alpha, String hex) {
+    this.alpha = alpha;
+    this.hex = hex;
+  }
+
+  static IterableInAppBackgroundColor from(Map<String, Object> dictionary) {
+    return IterableInAppBackgroundColor(
+        dictionary["alpha"] as double, dictionary["hex"] as String);
+  }
+}
+
+class IterableInAppDisplaySettings {
+  late IterableEdgeInset top;
+  late IterableEdgeInset left;
+  late IterableEdgeInset bottom;
+  late IterableEdgeInset right;
+  IterableInAppBackgroundColor? bgColor;
+  bool? shouldAnimate;
+
+  IterableInAppDisplaySettings(
+      IterableEdgeInset top,
+      IterableEdgeInset left,
+      IterableEdgeInset bottom,
+      IterableEdgeInset right,
+      IterableInAppBackgroundColor? bgColor,
+      bool? shouldAnimate) {
+    this.top = top;
+    this.top = left;
+    this.top = bottom;
+    this.top = right;
+    this.bgColor = bgColor;
+    this.shouldAnimate = shouldAnimate;
+  }
+
+  static IterableInAppDisplaySettings from(Map<String, Object> dictionary) {
+    var bg = dictionary["bgColor"] != null
+        ? IterableInAppBackgroundColor.from(
+            dictionary["bgColor"] as Map<String, Object>)
+        : null;
+    var animate = dictionary["shouldAnimate"] != null
+        ? dictionary["shouldAnimate"] as bool
+        : null;
+    return IterableInAppDisplaySettings(
+        IterableEdgeInset.from(dictionary["top"] as Map<String, int>),
+        IterableEdgeInset.from(dictionary["left"] as Map<String, int>),
+        IterableEdgeInset.from(dictionary["bottom"] as Map<String, int>),
+        IterableEdgeInset.from(dictionary["right"] as Map<String, int>),
+        bg,
+        animate);
+  }
+}
+
+class IterableWebInAppDisplaySettings {
+  late String position;
+
+  IterableWebInAppDisplaySettings(String position) {
+    this.position = position;
+  }
+
+  static IterableWebInAppDisplaySettings from(Map<String, Object> dictionary) {
+    return IterableWebInAppDisplaySettings(dictionary["position"] as String);
+  }
+}
+
+class IterableInAppContent {
+  late String html;
+  late Map<String, Object> payload;
+  late IterableInAppDisplaySettings inAppDisplaySettings;
+  late IterableWebInAppDisplaySettings? webInAppDisplaySettings;
+
+  IterableInAppContent(
+      String html,
+      Map<String, Object> payload,
+      IterableInAppDisplaySettings inAppDisplaySettings,
+      IterableWebInAppDisplaySettings webInAppDisplaySettings) {
+    this.html = html;
+    this.payload = payload;
+    this.inAppDisplaySettings = inAppDisplaySettings;
+    this.webInAppDisplaySettings = webInAppDisplaySettings;
+  }
+
+  static IterableInAppContent from(Map<String, Object> dictionary) {
+    var inAppDisplay = IterableInAppDisplaySettings.from(
+        dictionary["inAppDisplaySettings"] as Map<String, Object>);
+    var webInAppDisplay = IterableWebInAppDisplaySettings.from(
+        dictionary["webInAppDisplaySettings"] as Map<String, Object>);
+    return IterableInAppContent(
+        dictionary["html"] as String,
+        dictionary["payload"] as Map<String, Object>,
+        inAppDisplay,
+        webInAppDisplay);
+  }
+}
+
 // In App Message
 class IterableInAppMessage {
   late String messageId;
   late int campaignId;
-  late IterableHtmlInAppContent content;
+  //late IterableInAppContent content;
   late IterableInAppTrigger trigger;
   late bool saveToInbox;
   late bool read;
@@ -315,7 +344,7 @@ class IterableInAppMessage {
   IterableInAppMessage(
       String messageId,
       int campaignId,
-      IterableHtmlInAppContent content,
+      //IterableInAppContent content,
       IterableInAppTrigger trigger,
       bool saveToInbox,
       bool read,
@@ -326,7 +355,7 @@ class IterableInAppMessage {
       Map<String, Object>? customPayload}) {
     this.messageId = messageId;
     this.campaignId = campaignId;
-    this.content = content;
+    //this.content = content;
     this.trigger = trigger;
     this.saveToInbox = saveToInbox;
     this.read = read;
@@ -345,14 +374,13 @@ class IterableInAppMessage {
     return {
       'messageId': messageId,
       'campaignId': campaignId,
-      'content': content,
+      //'content': jsonEncode(content),
       'trigger': {'type': trigger.type.index},
       'saveToInbox': saveToInbox,
       'customPayload': customPayload,
       'read': read,
       'priorityLevel': priorityLevel,
-      'createdAt': createdAt?.toIso8601String() ??
-          0, //jsonEncode(createdAt, toEncodable: ),
+      'createdAt': createdAt?.toIso8601String() ?? 0,
       'expiresAt': expiresAt?.toIso8601String() ?? 0,
       'inboxMetadata': {
         'title': inboxMetadata?.title ?? "",
@@ -366,8 +394,8 @@ class IterableInAppMessage {
     final dictionary = jsonDecode(json) as Map<String, dynamic>;
     String messageId = dictionary["messageId"];
     int campaignId = dictionary["campaignId"];
-    IterableHtmlInAppContent content = IterableHtmlInAppContent.from(
-        Map<String, Object>.from(dictionary["content"]));
+    // IterableInAppContent content = IterableInAppContent.from(
+    //     Map<String, Object>.from(dictionary["content"]));
     IterableInAppTrigger trigger = IterableInAppTrigger.from(
         const JsonEncoder().convert(dictionary["trigger"]));
     bool saveToInbox = dictionary["saveToInbox"];
@@ -384,7 +412,7 @@ class IterableInAppMessage {
             Map<String, Object>.from(dictionary["inboxMetadata"]))
         : null;
 
-    return IterableInAppMessage(messageId, campaignId, content, trigger,
+    return IterableInAppMessage(messageId, campaignId, /*content,*/ trigger,
         saveToInbox, read, priorityLevel,
         createdAt: createdAt,
         expiresAt: expiresAt,
@@ -402,47 +430,11 @@ class IterableInAppManager {
     IterableInAppMessage convertedMsg;
     List<IterableInAppMessage> outgoingMsgs = [];
     var incomingMsgs = await _channel.invokeMethod('getInAppMessages');
-    debugPrint("# of in app messages: ${incomingMsgs.toList().length}");
     incomingMsgs.forEach((message) => {
           convertedMsg =
               IterableInAppMessage.from(const JsonEncoder().convert(message)),
           outgoingMsgs.add(convertedMsg)
         });
     return outgoingMsgs;
-  }
-
-  /// Shows in app [message]
-  Future<String?> showMessage(
-      IterableInAppMessage message, bool consume) async {
-    return await _channel.invokeMethod(
-        'showMessage', {'messageId': message.messageId, 'consume': consume});
-  }
-
-  /// Remove in app [message]
-  void removeMessage(IterableInAppMessage message,
-      IterableInAppLocation location, IterableInAppDeleteSource source) {
-    _channel.invokeMethod('removeMessage', {
-      'messageId': message.messageId,
-      'location': location,
-      'source': source
-    });
-  }
-
-  /// Sets the read flag for an in app [message]
-  void setReadForMessage(IterableInAppMessage message, bool read) {
-    _channel.invokeMethod(
-        'setReadForMessage', {'messageId': message.messageId, 'read': read});
-  }
-
-  /// Gets the [IterableHtmlInAppContent] for a message
-  Future<IterableHtmlInAppContent> getHtmlContentForMessage(
-      IterableInAppMessage message) async {
-    return await _channel.invokeMethod(
-        'getHtmlContentForMessage', {'messageId': message.messageId});
-  }
-
-  /// Pauses auto display for in-app messages
-  void setAutoDisplayPaused(bool paused) {
-    _channel.invokeMethod('setAutoDisplayPaused', {'paused': paused});
   }
 }

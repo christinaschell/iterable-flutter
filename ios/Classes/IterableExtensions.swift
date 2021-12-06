@@ -95,6 +95,19 @@ extension Data {
     }
 }
 
+extension Date {
+    var integer: Int {
+        Int(self.timeIntervalSince1970 * 1000)
+    }
+}
+
+extension Int {
+    var toDate: Date {
+        let seconds = Double(self) / 1000.0 // ms -> seconds
+        return Date(timeIntervalSince1970: seconds)
+    }
+}
+
 extension Dictionary where Key == AnyHashable, Value == Any {
     var stringified: String? {
         guard let data = try? JSONSerialization.data(withJSONObject: self, options: .prettyPrinted),
@@ -102,5 +115,105 @@ extension Dictionary where Key == AnyHashable, Value == Any {
             return nil
         }
         return jsonString
+    }
+}
+
+extension IterableInAppTrigger {
+    var dictionary: [AnyHashable: Any] {
+        var dict = [AnyHashable: Any]()
+        dict["type"] = self.type.rawValue
+        return dict
+    }
+}
+
+extension UIEdgeInsets {
+    var dictionary: [AnyHashable: Any] {
+        var dict = [AnyHashable: Any]()
+        dict["top"] = top
+        dict["left"] = left
+        dict["bottom"] = bottom
+        dict["right"] = right
+        return dict
+    }
+}
+
+extension IterableInboxMetadata {
+    var dictionary: [AnyHashable: Any]? {
+        var dict = [AnyHashable: Any]()
+        dict["title"] = title
+        dict["subtitle"] = subtitle
+        dict["icon"] = icon
+        return dict
+    }
+}
+
+extension IterableInAppMessage {
+    var dictionary: [AnyHashable: Any] {
+        var dict = [AnyHashable: Any]()
+        guard let content = content as? IterableHtmlInAppContent else {
+            return dict
+        }
+        dict["messageId"] = messageId
+        dict["campaignId"] = campaignId
+        dict["content"] = content.dictionary
+        dict["trigger"] = trigger.dictionary
+        dict["createdAt"] = createdAt?.integer
+        dict["expiresAt"] = expiresAt?.integer
+        dict["saveToInbox"] = saveToInbox
+        dict["inboxMetadata"] = inboxMetadata?.dictionary
+        dict["customPayload"] = customPayload
+        dict["read"] = read
+        dict["priorityLevel"] = priorityLevel
+        return dict
+    }
+}
+
+extension IterableHtmlInAppContent {
+    var dictionary: [AnyHashable: Any] {
+        var dict = [AnyHashable: Any]()
+        dict["type"] = type.rawValue
+        dict["edgeInsets"] = edgeInsets.dictionary
+        dict["html"] = html
+        return dict
+    }
+}
+
+extension InAppLocation {
+    static func from(number: NSNumber) -> InAppLocation {
+        if let value = number as? Int {
+            return InAppLocation(rawValue: value) ?? .inApp
+        } else {
+            return .inApp
+        }
+    }
+}
+
+extension InAppCloseSource {
+    static func from(number: NSNumber) -> InAppCloseSource? {
+        guard let value = number as? Int else {
+            return nil
+        }
+        
+        return InAppCloseSource(rawValue: value)
+    }
+}
+
+extension InAppDeleteSource {
+    static func from(number: NSNumber) -> InAppDeleteSource? {
+        guard let value = number as? Int else {
+            return nil
+        }
+        
+        return InAppDeleteSource(rawValue: value)
+    }
+}
+
+extension InAppShowResponse {
+    static func from(number: NSNumber) -> InAppShowResponse {
+        if let value = number as? Int {
+            return InAppShowResponse(rawValue: value) ?? .show
+        } else {
+            return .show
+        }
     }
 }

@@ -24,6 +24,10 @@ import IterableSDK
         print("😀 device token: \(token)")
         IterableAPI.register(token: deviceToken)
     }
+    override func application(_ application: UIApplication,
+                              didReceiveRemoteNotification userInfo: [AnyHashable : Any]) {
+        IterableAppIntegration.application(application, didReceiveRemoteNotification: userInfo, fetchCompletionHandler: { _ in })
+    }
     
     private func setupNotifications() {
         UNUserNotificationCenter.current().delegate = self

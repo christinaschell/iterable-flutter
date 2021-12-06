@@ -8,8 +8,9 @@ class Iterable {
   static const String pluginName = 'IterableFlutter';
   static const String pluginVersion = '0.0.1';
   static const MethodChannel _channel = MethodChannel('iterable');
+  static var inAppManager = IterableInAppManager();
 
-  /// Initializes Iterable with an [IterableConfig] object
+  /// Initializes Iterable with an [apiKey] and [IterableConfig] object
   ///
   /// [Future<bool>] upon success or failure
   static Future<bool> initialize(String apiKey, IterableConfig config) async {
@@ -33,7 +34,7 @@ class Iterable {
     return initialized;
   }
 
-  /// Sets email on the user profile
+  /// Sets [email] on the user profile
   static setEmail(String email) {
     developer.log("setEmail in iterable.dart: " + email);
     _channel.invokeMethod('setEmail', {'email': email});
@@ -46,26 +47,26 @@ class Iterable {
     return await _channel.invokeMethod('getEmail');
   }
 
-  /// Updates the user email
+  /// Updates the user [email]
   ///
   /// [Future<String>] upon success or failure
   static Future<String> updateEmail(String email) async {
     return await _channel.invokeMethod('updateEmail', {'email': email});
   }
 
-  /// Sets userId on the user profile
-  ///
-  /// [Future<String>] user id
+  /// Sets user [id] on the user profile
   static setUserId(String id) {
     _channel.invokeMethod('setUserId', {'userId': id});
   }
 
   /// Retrieves the current user id for the user
+  ///
+  /// [Future<String>] user id
   static Future<String> getUserId() async {
     return await _channel.invokeMethod('getUserId');
   }
 
-  /// Updates the user fields
+  /// Updates the user [dataFields]
   ///
   /// [Future<String>] upon success or failure
   static Future<String> updateUser(
@@ -74,7 +75,7 @@ class Iterable {
         {'dataFields': dataFields, 'mergeNestedObjects': mergeNestedObjects});
   }
 
-  /// Sets the user email and user id at the same time
+  /// Sets the user [email] and [userId] at the same time
   ///
   /// [Future<String>] upon success or failure
   static Future<String> setEmailAndUserId(String email, String userId) async {
@@ -82,19 +83,19 @@ class Iterable {
         .invokeMethod('setEmailAndUserId', {'email': email, 'userId': userId});
   }
 
-  /// Tracks a custom event
+  /// Tracks a custom event with [name] and optional [dataFields]
   static trackEvent(String name, Map<String, Object>? dataFields) {
     _channel.invokeMethod(
         'trackEvent', {'eventName': name, 'dataFields': dataFields});
   }
 
-  /// Tracks updates to the cart
+  /// Tracks updates to the cart [items]
   static updateCart(List<IterableCommerceItem> items) {
     var itemsList = items.map((item) => item.toJson()).toList();
     _channel.invokeMethod('updateCart', {'items': itemsList});
   }
 
-  /// Tracks a purchase
+  /// Tracks a purchase with order [total] cart [items] and optional [dataFields]
   static trackPurchase(double total, List<IterableCommerceItem> items,
       Map<String, Object>? dataFields) {
     var itemsList = items.map((item) => item.toJson()).toList();
@@ -107,5 +108,23 @@ class Iterable {
   /// [Future<String>] JSON string: the most recent push payload
   static Future<String> getLastPushPayload() async {
     return await _channel.invokeMethod('getLastPushPayload');
+  }
+
+  /// Updates subscription preferences for the user
+  static updateSubscriptions(
+      {List<int>? emailListIds,
+      List<int>? unsubscribedChannelIds,
+      List<int>? unsubscribedMessageTypeIds,
+      List<int>? subscribedMessageTypeIds,
+      int? campaignId,
+      int? templateId}) {
+    _channel.invokeMethod('updateSubscriptions', {
+      'emailListIds': emailListIds,
+      'unsubscribedChannelIds': unsubscribedChannelIds,
+      'unsubscribedMessageTypeIds': unsubscribedMessageTypeIds,
+      'subscribedMessageTypeIds': subscribedMessageTypeIds,
+      'campaignId': campaignId,
+      'templateId': templateId
+    });
   }
 }
