@@ -35,7 +35,11 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
       updateSubscriptions(call: call)
     } else if call.method == "setEmailAndUserId" {
       setEmailAndUserId(call: call, result: result)
-    } else if call.method == "trackEvent" {
+    } else if call.method == "getAttributionInfo" {
+      getAttributionInfo(result: result)
+    } else if call.method == "setAttributionInfo" {
+      setAttributionInfo(call: call)
+    } eelse if call.method == "trackEvent" {
       trackEvent(call: call)
     } else if call.method == "updateCart" {
       updateCart(call: call)
@@ -43,6 +47,8 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
       trackPurchase(call: call)
     } else if call.method == "getLastPushPayload" {
       getLastPushPayload(result: result)
+    } else if call.method == "disableDeviceForCurrentUser" {
+      disableDeviceForCurrentUser()
     } else if call.method == "getInAppMessages" {
       getInAppMessages(result: result)
     } else if call.method == "showMessage" {
@@ -172,6 +178,19 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
     })
   }
 
+  func getAttributionInfo(result: @escaping FlutterResult) {
+    //ITBInfo()
+    result(IterableAPI.attributionInfo.dictionary)
+  }
+
+  func setAttributionInfo(call: FlutterMethodCall) {
+    guard let arguments = call.arguments as? [String: Any],
+     let attrInfo = arguments["attributionInfo"] as? [AnyHashable: Any] else {
+       return
+     }
+    IterableAPI.setAttributionInfo(IterableDecoder.decode(attrInfo))
+  }
+
   func trackEvent(call: FlutterMethodCall) {
     guard let arguments = call.arguments as? [String: Any],
      let name = arguments["eventName"] as? String,
@@ -205,6 +224,11 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
   func getLastPushPayload(result: @escaping FlutterResult) {
     //ITBInfo()
     result(IterableAPI.lastPushPayload?.stringified ?? "")
+  }
+
+  func disableDeviceForCurrentUser() {
+    //ITBInfo()
+    IterableAPI.disableDeviceForCurrentUser()
   }
     
     // MARK: In-App Manager methods
@@ -298,6 +322,14 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
         DispatchQueue.main.async {
             IterableAPI.inAppManager.isAutoDisplayPaused = paused
         }
+    }
+
+    func setInAppShowResponse(number: NSNumber) {
+        ITBInfo()
+        
+//        self.inAppShowResponse = InAppShowResponse.from(number: number)
+//        
+//        inAppHandlerSemaphore.signal()
     }
 
     // MARK: Private

@@ -84,13 +84,23 @@ class IterableActionContext {
   Map<String, dynamic> toJson() => {'action': action, 'source': source};
 }
 
-// abstract class IterableLogLevel {
+class IterableAttributionInfo {
+  late int campaignId;
+  late int templateId;
+  late String messageId;
 
-//   static int debug = 1;
-//   static int info = 2;
-//   static int error = 3;
+  IterableAttributionInfo(int campaignId, int templateId, String messageId) {
+    this.campaignId = campaignId;
+    this.templateId = templateId;
+    this.messageId = messageId;
+  }
 
-// }
+  Map<String, dynamic> toJson() => {
+        'campaignId': campaignId,
+        'templateId': templateId,
+        'messageId': messageId
+      };
+}
 
 class IterableLogLevel {
   final int _value;
@@ -153,7 +163,17 @@ class IterableCommerceItem {
 
 /// In App Classes
 
-enum IterableInAppShowResponse { show, skip }
+enum IterableInAppShowType { show, skip }
+
+class IterableInAppShowResponse {
+  late IterableInAppShowType type;
+
+  IterableInAppShowResponse({required this.type});
+
+  IterableInAppShowResponse.fromIndex(int index) {
+    type = IterableInAppShowType.values[index];
+  }
+}
 
 enum IterableInAppTriggerType { immediate, event, never }
 

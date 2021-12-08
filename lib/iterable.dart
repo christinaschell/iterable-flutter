@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:io' show Platform;
 import 'common.dart';
 import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
@@ -83,6 +83,25 @@ class Iterable {
         .invokeMethod('setEmailAndUserId', {'email': email, 'userId': userId});
   }
 
+  /// Retrieves attribution info (campaignId, messageId etc.) for last push open or app link click from an email.
+  ///
+  /// [Future<IterableAttributionInfo>]
+  static Future<IterableAttributionInfo?> getAttributionInfo() async {
+    var attrInfo = await _channel.invokeMethod('getAttributionInfo');
+    if (attrInfo != null) {
+      return IterableAttributionInfo(attrInfo["campaignId"] as int,
+          attrInfo["templateId"] as int, attrInfo["messageId"] as String);
+    } else {
+      return null;
+    }
+  }
+
+  /// Sets [attributionInfo] (campaignId, messageId etc.) for last push open or app link click from an email.
+  static setAttributionInfo(IterableAttributionInfo attributionInfo) {
+    _channel.invokeMethod(
+        'setAttributionInfo', {'attributionInfo': attributionInfo.toJson()});
+  }
+
   /// Tracks a custom event with [name] and optional [dataFields]
   static trackEvent(String name, Map<String, Object>? dataFields) {
     _channel.invokeMethod(
@@ -101,6 +120,11 @@ class Iterable {
     var itemsList = items.map((item) => item.toJson()).toList();
     _channel.invokeMethod('trackPurchase',
         {'total': total, 'items': itemsList, 'dataFields': dataFields});
+  }
+
+  /// Disables the device for a current user
+  static disableDeviceForCurrentUser() {
+    _channel.invokeMethod('disableDeviceForCurrentUser');
   }
 
   /// Get the last push payload
@@ -127,4 +151,17 @@ class Iterable {
       'templateId': templateId
     });
   }
+
+  /// Wakes the app in Android
+  static wakeApp() {
+    if (Platform.isAndroid) {
+      // call wakeApp
+    }
+  }
+
+  /// All the delegate handle methods
+  /// setIn
+  // static setInAppShowResponse(String id) {
+  //   _channel.invokeMethod('setUserId', {'userId': id});
+  // }
 }

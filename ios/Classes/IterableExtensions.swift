@@ -118,6 +118,20 @@ extension Dictionary where Key == AnyHashable, Value == Any {
     }
 }
 
+extension Encodable {
+  var dictionary: [String: Any]? {
+    guard let data = try? JSONEncoder().encode(self) else { return nil }
+    return (try? JSONSerialization.jsonObject(with: data, options: .allowFragments)).flatMap { $0 as? [String: Any] }
+  }
+}
+
+struct IterableDecoder {
+    static func decode<T : Decodable>(from dictionary: [String : Decodable]) throws -> T {
+        let data = try JSONSerialization.data(withJSONObject: dictionary)
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+}
+
 extension IterableInAppTrigger {
     var dictionary: [AnyHashable: Any] {
         var dict = [AnyHashable: Any]()
