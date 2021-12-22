@@ -4,15 +4,32 @@ public enum IterableConstants {
     static let sdkVersion = "flutterSDKVersion"
 
     // Initial Config
-    static let apiKey = "apiKey"
-    static let apiEndPointOverride = "apiEndPointOverride"
-    static let config = "config"
-    static let version = "version"
-    static let remoteNotificationsEnabled = "remoteNotificationsEnabled"
+    public enum Config: String {
+        case apiKey
+        case apiEndPointOverride
+        case config
+        case version
+        //case remoteNotificationsEnabled
+        case expiringAuthTokenRefreshPeriod
+        case inAppDisplayInterval
+        case autoPushRegistration
+        case pushIntegrationName
+        case logLevel
+    }
 
     // Delegates
-    static let urlHandlerPresent = "urlHandlerPresent"
-    static let customActionHandlerPresent = "customActionHandlerPresent"
-    static let inAppHandlerPresent = "inAppHandlerPresent"
-    static let authHandlerPresent = "authHandlerPresent"
+    public enum Delegates: String {
+        case urlHandlerPresent
+        case customActionHandlerPresent
+        case inAppHandlerPresent
+        case authHandlerPresent
+    }
+
+    // Events
+    enum Events: String, CaseIterable  {
+        case emitterName = "emitterName";
+        case inAppDelegate = "IterableFlutter.InAppDelegateEvent"
+        case urlDelegate = "IterableFlutter.UrlDelegateEvent"
+        case authDelegate = "IterableFlutter.AuthDelegateEvent"
+    }
 }

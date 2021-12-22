@@ -2,30 +2,30 @@ import Foundation
 import IterableSDK
 
 public extension IterableConfig {
-    static func from(_ dictionary: [AnyHashable: Any]?) -> IterableConfig {
+    static func from(_ dictionary: [String: Any]?) -> IterableConfig {
         let config = IterableConfig()
         
         guard let dictionary = dictionary else {
             return config
         }
         
-        if let pushIntegrationName = dictionary["pushIntegrationName"] as? String {
+        if let pushIntegrationName = dictionary[.pushIntegrationName] as? String {
             config.pushIntegrationName = pushIntegrationName
         }
         
-        if let autoPushRegistration = dictionary["autoPushRegistration"] as? Bool {
+        if let autoPushRegistration = dictionary[.autoPushRegistration] as? Bool {
             config.autoPushRegistration = autoPushRegistration
         }
         
-        if let inAppDisplayInterval = dictionary["inAppDisplayInterval"] as? Double {
+        if let inAppDisplayInterval = dictionary[.inAppDisplayInterval] as? Double {
             config.inAppDisplayInterval = inAppDisplayInterval
         }
 
-        if let expiringAuthTokenRefreshPeriod = dictionary["expiringAuthTokenRefreshPeriod"] as? Double {
+        if let expiringAuthTokenRefreshPeriod = dictionary[.expiringAuthTokenRefreshPeriod] as? Double {
             config.expiringAuthTokenRefreshPeriod = expiringAuthTokenRefreshPeriod
         }
         
-        if let logLevelNumber = dictionary["logLevel"] as? NSNumber {
+        if let logLevelNumber = dictionary[.logLevel] as? NSNumber {
             config.logDelegate = createLogDelegate(logLevelNumber: logLevelNumber)
         }
         
@@ -119,17 +119,10 @@ extension Dictionary where Key == AnyHashable, Value == Any {
 }
 
 extension Encodable {
-  var dictionary: [String: Any]? {
+  var encoded: [String: Any]? {
     guard let data = try? JSONEncoder().encode(self) else { return nil }
     return (try? JSONSerialization.jsonObject(with: data, options: .allowFragments)).flatMap { $0 as? [String: Any] }
   }
-}
-
-struct IterableDecoder {
-    static func decode<T : Decodable>(from dictionary: [String : Decodable]) throws -> T {
-        let data = try JSONSerialization.data(withJSONObject: dictionary)
-        return try JSONDecoder().decode(T.self, from: data)
-    }
 }
 
 extension IterableInAppTrigger {
@@ -228,6 +221,53 @@ extension InAppShowResponse {
             return InAppShowResponse(rawValue: value) ?? .show
         } else {
             return .show
+        }
+    }
+}
+
+extension IterableAction {
+    var dictionary: [String: Any] {
+        var result = [String: Any]()
+                
+        result["type"] = self.type
+        
+        guard let data = self.data else {
+            return result
+        }
+        
+        result["data"] = data
+        
+        guard let userInput = self.userInput else {
+            return result
+        }
+        
+        result["userInput"] = userInput
+        
+        return result
+    }
+}
+
+extension IterableActionContext {
+    var dictionary: [String: Any] {
+        var result = [String: Any]()
+
+        let actionDict = self.action.dictionary
+        result["action"] = actionDict
+        result["source"] = self.source.rawValue
+        
+        return result
+    }
+}
+
+public extension Dictionary where Key: ExpressibleByStringLiteral {
+    subscript(key: IterableConstants.Config) -> Value? {
+        get {
+            return self[key.rawValue as! Key]
+        }
+    }
+    subscript(key: IterableConstants.Delegates) -> Value? {
+        get {
+            return self[key.rawValue as! Key]
         }
     }
 }

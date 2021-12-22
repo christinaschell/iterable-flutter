@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
+
 import 'common.dart';
+import 'events/event_emitter.dart';
 import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 
@@ -8,19 +12,25 @@ class Iterable {
   static const String pluginName = 'IterableFlutter';
   static const String pluginVersion = '0.0.1';
   static const MethodChannel _channel = MethodChannel('iterable');
+  static EventEmitter emitter = EventEmitter();
   static var inAppManager = IterableInAppManager();
+  static final Map<String, Function> _listeners = {};
+  static Timer? timer;
 
-  /// Initializes Iterable with an [apiKey] and [IterableConfig] object
+  /// Initializes Iterable with an [apiKey] and an Iterable [config] object
   ///
   /// [Future<bool>] upon success or failure
   static Future<bool> initialize(String apiKey, IterableConfig config) async {
+    bool inAppDelegatePresent = config.inAppDelegate != null;
+    debugPrint("🔥config.inAppDelegate: ${config.inAppDelegate}");
+    debugPrint("🔥inAppDelegatePresent: $inAppDelegatePresent");
     var initialized = await _channel.invokeMethod('initialize', {
       'config': {
         'remoteNotificationsEnabled': config.remoteNotificationsEnabled,
         'pushIntegrationName': config.pushIntegrationName,
         'urlHandlerPresent': config.urlHandlerPresent,
         'customActionHandlerPresent': config.customActionHandlerPresent,
-        'inAppHandlerPresent': config.inAppHandlerPresent,
+        'inAppHandlerPresent': inAppDelegatePresent,
         'authHandlerPresent': config.authHandlerPresent,
         'autoPushRegistration': config.autoPushRegistration,
         'inAppDisplayInterval': config.inAppDisplayInterval,
@@ -31,6 +41,9 @@ class Iterable {
       'pluginName': pluginName,
       'apiKey': apiKey
     });
+    if (inAppDelegatePresent) {
+      setInAppHandler(config.inAppDelegate!);
+    }
     return initialized;
   }
 
@@ -127,14 +140,33 @@ class Iterable {
     _channel.invokeMethod('disableDeviceForCurrentUser');
   }
 
+  /// Tracks a push open event manually
+  static trackPushOpenWithCampaignId(
+      int campaignId,
+      int templateId,
+      String messageId,
+      bool appAlreadyRunning,
+      Map<String, Object>? dataFields) {
+    _channel.invokeMethod('trackPushOpen', {
+      'campaignId': campaignId,
+      'templateId': templateId,
+      'messageId': messageId,
+      'appAlreadyRunning': appAlreadyRunning,
+      'dataFields': dataFields
+    });
+  }
+
   /// Get the last push payload
   ///
-  /// [Future<String>] JSON string: the most recent push payload
-  static Future<String> getLastPushPayload() async {
+  /// [Future<dynamic>] the most recent push payload
+  static Future<dynamic> getLastPushPayload() async {
     return await _channel.invokeMethod('getLastPushPayload');
   }
 
   /// Updates subscription preferences for the user
+  /// from a list of [emailListIds] or [unsubscribedChannelIds]
+  /// or [unsubscribedMessageTypeIds] or [subscribedMessageTypeIds]
+  /// can also optionally include [campaignId] and/or [templateId]
   static updateSubscriptions(
       {List<int>? emailListIds,
       List<int>? unsubscribedChannelIds,
@@ -152,16 +184,138 @@ class Iterable {
     });
   }
 
+  /// Tracks an in-app open event manually
+  static trackInAppOpen(
+      IterableInAppMessage message, IterableInAppLocation location) {
+    // toJson for these
+    _channel.invokeMethod('trackInAppOpen',
+        {'message': message.messageId, 'location': location.toInt()});
+  }
+
+  /// Tracks an in-app click event manually
+  static trackInAppClick(IterableInAppMessage message,
+      IterableInAppLocation location, String clickedUrl) {
+    _channel.invokeMethod('trackInAppClick', {
+      'message': message.toJson(),
+      'location': location.toInt(),
+      'clickedUrl': clickedUrl
+    });
+  }
+
+  /// Tracks an in-app close event manually
+  static trackInAppClose(
+      IterableInAppMessage message,
+      IterableInAppLocation location,
+      IterableInAppCloseSource source,
+      String? clickedUrl) {
+    _channel.invokeMethod('trackInAppClose', {
+      'message': message.toJson(),
+      'location': location.toInt(),
+      'source': source.toInt(),
+      'clickedUrl': clickedUrl
+    });
+  }
+
+  /// Consumes an in-app message from the queue
+  static inAppConsume(IterableInAppMessage message,
+      IterableInAppLocation location, IterableInAppDeleteSource source) {
+    _channel.invokeMethod('inAppConsume', {
+      'message': message.toJson(),
+      'location': location.toInt(),
+      'source': source.toInt(),
+    });
+  }
+
   /// Wakes the app in Android
   static wakeApp() {
     if (Platform.isAndroid) {
-      // call wakeApp
+      _channel.invokeMethod('wakeApp');
     }
   }
 
-  /// All the delegate handle methods
-  /// setIn
-  // static setInAppShowResponse(String id) {
-  //   _channel.invokeMethod('setUserId', {'userId': id});
-  // }
+// not sure if needed
+  static setInAppShowResponse(IterableInAppShowResponse response) {
+    _channel.invokeMethod(
+        'setInAppShowResponse', {'showResponse': response.toInt()});
+  }
+
+  /// Sets the callback for the [InAppHanlder]
+  static setInAppHandler(InAppHandlerCallback callback) {
+    _listeners[EventListenerNames.inAppHandler] = callback;
+    _handleListener(EventListenerNames.inAppHandler);
+  }
+
+  static setUrlHandler(UrlHandlerCallback callback) {
+    _listeners[EventListenerNames.urlHandler] = callback;
+    _handleListener(EventListenerNames.urlHandler);
+  }
+
+  static callUrlHandler(
+      String url, IterableActionContext context, Function callback) {
+    bool handledResult = callback(url, context);
+    if (handledResult == false) {
+      // Linking.canOpenURL(url)
+      //   .then(canOpen => {
+      //     if (canOpen) { Linking.openURL(url) }
+      //   })
+      //   .catch(reason => { console.log("could not open url: " + reason) })
+    }
+  }
+
+  static Future<void> _methodCallHandler(MethodCall call) async {
+    if (call.method.toString() == 'callListener') {
+      emitter.emit(
+          call.arguments[EventListenerNames.name], null, call.arguments);
+    }
+  }
+
+  static _handleListener(String eventName) {
+    _channel.setMethodCallHandler(_methodCallHandler);
+    emitter.on(eventName, {}, (ev, context) {
+      switch (eventName) {
+        case EventListenerNames.inAppHandler:
+          var encodedData = jsonEncode(ev.eventData);
+          var eventDataMap = jsonDecode(encodedData) as Map;
+          var message = IterableInAppMessage.from(jsonEncode(eventDataMap));
+          Function callback =
+              _listeners[EventListenerNames.inAppHandler] as Function;
+          var response = callback(message);
+          setInAppShowResponse(response);
+          break;
+        case EventListenerNames.urlHandler:
+          dynamic encodedData = jsonEncode(ev.eventData);
+          Map eventDataMap = jsonDecode(encodedData) as Map;
+          String url = eventDataMap["url"];
+          IterableActionContext context =
+              IterableActionContext.from(eventDataMap["context"]);
+          Function callback =
+              _listeners[EventListenerNames.urlHandler] as Function;
+          Iterable.wakeApp();
+          if (Platform.isAndroid) {
+            // Give enough time for Activity to wake up.
+            timer = Timer(const Duration(seconds: 1),
+                () => callUrlHandler(url, context, callback));
+          } else {
+            callUrlHandler(url, context, callback);
+          }
+          break;
+        // case EventListenerNames.consentExpired:
+        //   Function callback = _listeners[EventListenerNames.consentExpired] =
+        //       _listeners[EventListenerNames.consentExpired] as Function;
+        //   callback();
+        //   break;
+        // case EventListenerNames.visitor:
+        //   var encodedData = json.encode(ev.eventData);
+        //   var eventDataMap = json.decode(encodedData);
+        //   eventDataMap as Map;
+        //   eventDataMap.remove(EventListenerNames.name);
+        //   Function callback = _listeners[EventListenerNames.visitor] =
+        //       _listeners[EventListenerNames.visitor] as Function;
+        //   callback(eventDataMap);
+        //   break;
+        default:
+          break;
+      }
+    });
+  }
 }

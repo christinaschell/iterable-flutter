@@ -3,6 +3,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 // ignore_for_file: prefer_initializing_formals
 
+typedef InAppHandlerCallback = IterableInAppShowResponse Function(
+    IterableInAppMessage msg);
+typedef UrlHandlerCallback = bool Function(
+    String url, IterableActionContext context);
+
+class Utilities {
+  static T? cast<T>(x) => x is T ? x : null;
+}
+
+class EventListenerNames {
+  static const name = 'emitterName';
+  static const inAppHandler = 'IterableFlutter.InAppDelegateEvent';
+  static const urlHandler = 'IterableFlutter.UrlDelegateEvent';
+  static const authHandler = 'IterableFlutter.AuthDelegateEvent';
+}
+
 class IterableConfig {
   bool? remoteNotificationsEnabled;
   String? pushIntegrationName;
@@ -14,6 +30,7 @@ class IterableConfig {
   double? inAppDisplayInterval;
   double? expiringAuthTokenRefreshPeriod;
   int? logLevel;
+  InAppHandlerCallback? inAppDelegate;
   // Function? urlHanler; // stub urlHandler
 
   IterableConfig(
@@ -26,7 +43,8 @@ class IterableConfig {
       bool? autoPushRegistration,
       double? inAppDisplayInterval,
       double? expiringAuthTokenRefreshPeriod,
-      IterableLogLevel? logLevel}) {
+      IterableLogLevel? logLevel,
+      InAppHandlerCallback? inAppDelegate}) {
     this.remoteNotificationsEnabled = remoteNotificationsEnabled ?? true;
     this.pushIntegrationName = pushIntegrationName;
     this.urlHandlerPresent = urlHandlerPresent;
@@ -38,6 +56,7 @@ class IterableConfig {
     this.expiringAuthTokenRefreshPeriod =
         expiringAuthTokenRefreshPeriod ?? 60.0;
     this.logLevel = logLevel?.toInt() ?? IterableLogLevel.info.toInt();
+    this.inAppDelegate = inAppDelegate;
   }
 }
 
@@ -69,6 +88,11 @@ class IterableAction {
   // Note: might not need
   Map<String, dynamic> toJson() =>
       {'type': type, 'data': data, 'userInput': userInput};
+
+  static IterableAction from(Map<String, dynamic> dictionary) {
+    return IterableAction(dictionary["type"],
+        data: dictionary["data"], userInput: dictionary["userInput"]);
+  }
 }
 
 class IterableActionContext {
@@ -82,6 +106,12 @@ class IterableActionContext {
 
   // Note: might not need
   Map<String, dynamic> toJson() => {'action': action, 'source': source};
+
+  static IterableActionContext from(Map<String, dynamic> dictionary) {
+    IterableAction action = IterableAction.from(dictionary);
+    IterableActionSource source = dictionary["source"];
+    return IterableActionContext(action, source);
+  }
 }
 
 class IterableAttributionInfo {
@@ -163,16 +193,17 @@ class IterableCommerceItem {
 
 /// In App Classes
 
-enum IterableInAppShowType { show, skip }
-
 class IterableInAppShowResponse {
-  late IterableInAppShowType type;
+  final int _value;
 
-  IterableInAppShowResponse({required this.type});
+  const IterableInAppShowResponse._(this._value);
 
-  IterableInAppShowResponse.fromIndex(int index) {
-    type = IterableInAppShowType.values[index];
+  int toInt() {
+    return _value;
   }
+
+  static const IterableInAppShowResponse show = IterableInAppShowResponse._(0);
+  static const IterableInAppShowResponse skip = IterableInAppShowResponse._(1);
 }
 
 enum IterableInAppTriggerType { immediate, event, never }
@@ -213,12 +244,32 @@ class IterableInAppContentType {
   }
 }
 
-enum IterableInAppLocation { inApp, inbox }
+class IterableInAppLocation {
+  final int _value;
 
-abstract class IterableInAppCloseSource {
-  static int back = 0;
-  static int link = 1;
-  static int unknown = 100;
+  const IterableInAppLocation._(this._value);
+
+  int toInt() {
+    return _value;
+  }
+
+  static const IterableInAppLocation inApp = IterableInAppLocation._(0);
+  static const IterableInAppLocation inbox = IterableInAppLocation._(1);
+}
+
+class IterableInAppCloseSource {
+  final int _value;
+
+  const IterableInAppCloseSource._(this._value);
+
+  int toInt() {
+    return _value;
+  }
+
+  static const IterableInAppCloseSource back = IterableInAppCloseSource._(0);
+  static const IterableInAppCloseSource link = IterableInAppCloseSource._(1);
+  static const IterableInAppCloseSource unknown =
+      IterableInAppCloseSource._(100);
 }
 
 class IterableInAppDeleteSource {
@@ -259,10 +310,15 @@ class IterableEdgeInsets {
   static IterableEdgeInsets from(String json) {
     final decodedEdgeInsets = jsonDecode(json) as Map<String, dynamic>;
     return IterableEdgeInsets(
-        decodedEdgeInsets["top"] as double,
-        decodedEdgeInsets["left"] as double,
-        decodedEdgeInsets["bottom"] as double,
-        decodedEdgeInsets["right"] as double);
+        decodedEdgeInsets["top"].toDouble(),
+        decodedEdgeInsets["left"].toDouble(),
+        decodedEdgeInsets["bottom"].toDouble(),
+        decodedEdgeInsets["right"].toDouble());
+  }
+
+  static double convertToDouble(dynamic number) {
+    final double? result = Utilities.cast(number);
+    return (result != null) ? result : 0.0;
   }
 }
 
@@ -292,7 +348,7 @@ class IterableHtmlInAppContent implements IterableInAppContent {
     };
   }
 
-  static IterableHtmlInAppContent from(Map<String, Object> dictionary) {
+  static IterableHtmlInAppContent from(Map<String, dynamic> dictionary) {
     var encodedEdgeInsets = jsonEncode(dictionary["edgeInsets"]);
     return IterableHtmlInAppContent(
         IterableInAppContentType.from(dictionary["type"] as int),
@@ -371,8 +427,7 @@ class IterableInAppMessage {
       'customPayload': customPayload,
       'read': read,
       'priorityLevel': priorityLevel,
-      'createdAt': createdAt?.toIso8601String() ??
-          0, //jsonEncode(createdAt, toEncodable: ),
+      'createdAt': createdAt?.toIso8601String() ?? 0,
       'expiresAt': expiresAt?.toIso8601String() ?? 0,
       'inboxMetadata': {
         'title': inboxMetadata?.title ?? "",
@@ -385,11 +440,11 @@ class IterableInAppMessage {
   static IterableInAppMessage from(String json) {
     final dictionary = jsonDecode(json) as Map<String, dynamic>;
     String messageId = dictionary["messageId"];
-    int campaignId = dictionary["campaignId"];
+    int campaignId = dictionary["campaignId"] ?? 0;
     IterableHtmlInAppContent content = IterableHtmlInAppContent.from(
         Map<String, Object>.from(dictionary["content"]));
-    IterableInAppTrigger trigger = IterableInAppTrigger.from(
-        const JsonEncoder().convert(dictionary["trigger"]));
+    IterableInAppTrigger trigger =
+        IterableInAppTrigger.from(jsonEncode(dictionary["trigger"]));
     bool saveToInbox = dictionary["saveToInbox"];
     Map<String, Object>? customPayload =
         Map<String, Object>.from(dictionary["customPayload"]);
@@ -417,15 +472,14 @@ class IterableInAppMessage {
 class IterableInAppManager {
   static const MethodChannel _channel = MethodChannel('iterable');
 
-  /// Returns a [Future<List<dynamic>>] of all in-app messages
+  /// Returns a [Future<List<IterableInAppMessage>>] of all in-app messages
   Future<List<IterableInAppMessage>> getMessages() async {
     IterableInAppMessage convertedMsg;
     List<IterableInAppMessage> outgoingMsgs = [];
     var incomingMsgs = await _channel.invokeMethod('getInAppMessages');
     debugPrint("# of in app messages: ${incomingMsgs.toList().length}");
     incomingMsgs.forEach((message) => {
-          convertedMsg =
-              IterableInAppMessage.from(const JsonEncoder().convert(message)),
+          convertedMsg = IterableInAppMessage.from(jsonEncode(message)),
           outgoingMsgs.add(convertedMsg)
         });
     return outgoingMsgs;
@@ -443,8 +497,8 @@ class IterableInAppManager {
       IterableInAppLocation location, IterableInAppDeleteSource source) {
     _channel.invokeMethod('removeMessage', {
       'messageId': message.messageId,
-      'location': location,
-      'source': source
+      'location': location.toInt(),
+      'source': source.toInt()
     });
   }
 
@@ -457,8 +511,10 @@ class IterableInAppManager {
   /// Gets the [IterableHtmlInAppContent] for a message
   Future<IterableHtmlInAppContent> getHtmlContentForMessage(
       IterableInAppMessage message) async {
-    return await _channel.invokeMethod(
+    var htmlContentString = await _channel.invokeMethod(
         'getHtmlContentForMessage', {'messageId': message.messageId});
+    final dictionary = jsonDecode(htmlContentString) as Map<String, dynamic>;
+    return IterableHtmlInAppContent.from(dictionary);
   }
 
   /// Pauses auto display for in-app messages

@@ -39,7 +39,7 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
       getAttributionInfo(result: result)
     } else if call.method == "setAttributionInfo" {
       setAttributionInfo(call: call)
-    } eelse if call.method == "trackEvent" {
+    } else if call.method == "trackEvent" {
       trackEvent(call: call)
     } else if call.method == "updateCart" {
       updateCart(call: call)
@@ -49,6 +49,16 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
       getLastPushPayload(result: result)
     } else if call.method == "disableDeviceForCurrentUser" {
       disableDeviceForCurrentUser()
+    } else if call.method == "trackPushOpen" {
+      trackPushOpen(call: call)
+    } else if call.method == "trackInAppOpen" {
+      trackInAppOpen(call: call)
+    } else if call.method == "trackInAppClick" {
+      trackInAppClick(call: call)
+    } else if call.method == "trackInAppClose" {
+      trackInAppClose(call: call)
+    } else if call.method == "inAppConsume" {
+      inAppConsume(call: call)
     } else if call.method == "getInAppMessages" {
       getInAppMessages(result: result)
     } else if call.method == "showMessage" {
@@ -57,10 +67,14 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
       removeMessage(call: call)
     } else if call.method == "setReadForMessage" {
       setReadForMessage(call: call)
-    } else if call.method == "getHtmlInAppContent" {
+    } else if call.method == "getHtmlContentForMessage" {
       getHtmlInAppContent(call: call, result: result)
     } else if call.method == "setAutoDisplayPaused" {
       setAutoDisplayPaused(call: call)
+    } else if call.method == "setInAppShowResponse" {
+        setInAppShowResponse(call: call)
+    } else if call.method == "wakeApp" {
+      // Android only
     } else {
       result(FlutterMethodNotImplemented);
     }
@@ -68,13 +82,13 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
 
   func initialize(call: FlutterMethodCall, result: @escaping FlutterResult) {
       guard let arguments = call.arguments as? [String: Any], 
-      let apiKey = arguments[IterableConstants.apiKey] as? String,
-      let config = arguments[IterableConstants.config] as? [AnyHashable: Any],
-      let version = arguments[IterableConstants.version] as? String else {
+      let apiKey = arguments[.apiKey] as? String,
+      let config = arguments[.config] as? [String: Any],
+      let version = arguments[.version] as? String else {
         // TODO log error
           return result(false)
       }
-      let apiEndPointOverride = arguments[IterableConstants.apiEndPointOverride] as? String
+      let apiEndPointOverride = arguments[.apiEndPointOverride] as? String
       
       internalInitialize(withApiKey: apiKey,
           config: config,
@@ -180,15 +194,18 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
 
   func getAttributionInfo(result: @escaping FlutterResult) {
     //ITBInfo()
-    result(IterableAPI.attributionInfo.dictionary)
+    result(IterableAPI.attributionInfo?.encoded)
   }
 
   func setAttributionInfo(call: FlutterMethodCall) {
     guard let arguments = call.arguments as? [String: Any],
-     let attrInfo = arguments["attributionInfo"] as? [AnyHashable: Any] else {
+     let attrInfo = arguments["attributionInfo"] as? [AnyHashable: Any],
+      let campaignId = attrInfo["campaignId"] as? NSNumber,
+      let templateId = attrInfo["templateId"] as? NSNumber,
+      let messageId = attrInfo["messageId"] as? String else {
        return
      }
-    IterableAPI.setAttributionInfo(IterableDecoder.decode(attrInfo))
+      IterableAPI.attributionInfo = IterableAttributionInfo(campaignId: campaignId, templateId: templateId, messageId: messageId)
   }
 
   func trackEvent(call: FlutterMethodCall) {
@@ -223,12 +240,94 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
 
   func getLastPushPayload(result: @escaping FlutterResult) {
     //ITBInfo()
-    result(IterableAPI.lastPushPayload?.stringified ?? "")
+      result(IterableAPI.lastPushPayload as? [String: Any] ?? [String: Any]())
   }
 
   func disableDeviceForCurrentUser() {
     //ITBInfo()
     IterableAPI.disableDeviceForCurrentUser()
+  }
+
+  func trackPushOpen(call: FlutterMethodCall) {
+    guard let arguments = call.arguments as? [String: Any],
+    let campaignId = arguments["campaignId"] as? NSNumber,
+     let templateId = arguments["teamplateId"] as? NSNumber,
+     let messageId = arguments["messageId"] as? String,
+     let appAlreadyRunning = arguments["appAlreadyRunning"] as? Bool else {
+      return
+    }
+    let dataFields = arguments["dataFields"] as? [AnyHashable: Any]
+    IterableAPI.track(pushOpen: campaignId,
+                          templateId: templateId,
+                          messageId: messageId,
+                          appAlreadyRunning: appAlreadyRunning,
+                          dataFields: dataFields)
+  }
+
+  func trackInAppOpen(call: FlutterMethodCall) {
+    guard let arguments = call.arguments as? [String: Any],
+    let messageId = arguments["messageId"] as? String,
+    let message = IterableAPI.inAppManager.getMessage(withId: messageId),
+     let location = arguments["location"] as? NSNumber else {
+      return
+    }
+        
+    IterableAPI.track(inAppOpen: message, location: InAppLocation.from(number: location))
+  }
+
+  func trackInAppClick(call: FlutterMethodCall) {
+    guard let arguments = call.arguments as? [String: Any],
+    let messageId = arguments["messageId"] as? String,
+    let message = IterableAPI.inAppManager.getMessage(withId: messageId),
+     let location = arguments["location"] as? NSNumber,
+     let clickedUrl = arguments["clickedUrl"] as? String else {
+      return
+    }
+    
+    IterableAPI.track(inAppClick: message, location: InAppLocation.from(number: location), clickedUrl: clickedUrl)
+  }
+
+  func trackInAppClose(call: FlutterMethodCall) {
+    guard let arguments = call.arguments as? [String: Any],
+    let messageId = arguments["messageId"] as? String,
+    let message = IterableAPI.inAppManager.getMessage(withId: messageId),
+     let location = arguments["location"] as? NSNumber,
+     let source = arguments["source"] as? NSNumber else {
+      return
+    }
+    
+    let clickedUrl = arguments["clickedUrl"] as? String 
+
+    if let inAppCloseSource = InAppCloseSource.from(number: source) {
+            IterableAPI.track(inAppClose: message,
+                              location: InAppLocation.from(number: location),
+                              source: inAppCloseSource,
+                              clickedUrl: clickedUrl)
+        } else {
+            IterableAPI.track(inAppClose: message,
+                              location: InAppLocation.from(number: location),
+                              clickedUrl: clickedUrl)
+        }
+  }
+
+  func inAppConsume(call: FlutterMethodCall) {
+    guard let arguments = call.arguments as? [String: Any],
+    let messageId = arguments["messageId"] as? String,
+    let message = IterableAPI.inAppManager.getMessage(withId: messageId),
+     let location = arguments["location"] as? NSNumber,
+     let source = arguments["source"] as? NSNumber else {
+      return
+    }
+
+    if let inAppDeleteSource = InAppDeleteSource.from(number: source) {
+            IterableAPI.inAppConsume(message: message,
+                              location: InAppLocation.from(number: location),
+                              source: inAppDeleteSource)
+        } else {
+            IterableAPI.inAppConsume(message: message,
+                              location: InAppLocation.from(number: location))
+        }
+
   }
     
     // MARK: In-App Manager methods
@@ -310,7 +409,7 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
             return
         }
         
-        result(content.dictionary)
+        result(content.dictionary.stringified)
     }
 
     func setAutoDisplayPaused(call: FlutterMethodCall) {
@@ -324,36 +423,42 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
         }
     }
 
-    func setInAppShowResponse(number: NSNumber) {
-        ITBInfo()
-        
-//        self.inAppShowResponse = InAppShowResponse.from(number: number)
-//        
-//        inAppHandlerSemaphore.signal()
+    func setInAppShowResponse(call: FlutterMethodCall) {
+      guard let arguments = call.arguments as? [String: Any],
+            let showResponseNumber = arguments["showResponse"] as? NSNumber else {
+            return
+       }
+       self.inAppShowResponse = InAppShowResponse.from(number: showResponseNumber)
+       inAppHandlerSemaphore.signal()
     }
 
     // MARK: Private
+
+    // Handling in-app delegate
+    private var inAppShowResponse = InAppShowResponse.show
+    private var inAppHandlerSemaphore = DispatchSemaphore(value: 0)
+
     private func internalInitialize(withApiKey apiKey: String,
-                            config configDict: [AnyHashable: Any],
+                            config configDict: [String: Any],
                             version: String,
                             apiEndPointOverride: String? = nil,
                             result: @escaping FlutterResult) {
       //ITBInfo()
         
       let iterableConfig = IterableConfig.from(configDict)
-       if let urlHandlerPresent = configDict[IterableConstants.urlHandlerPresent] as? Bool, urlHandlerPresent == true {
+        if let urlHandlerPresent = configDict[.urlHandlerPresent] as? Bool, urlHandlerPresent == true {
            iterableConfig.urlDelegate = self
        }
 
-       if let customActionHandlerPresent = configDict[IterableConstants.customActionHandlerPresent] as? Bool, customActionHandlerPresent == true {
+       if let customActionHandlerPresent = configDict[.customActionHandlerPresent] as? Bool, customActionHandlerPresent == true {
            iterableConfig.customActionDelegate = self
        }
 
-       if let inAppHandlerPresent = configDict[IterableConstants.inAppHandlerPresent] as? Bool, inAppHandlerPresent == true {
+      if let inAppHandlerPresent = configDict[.inAppHandlerPresent] as? Bool, inAppHandlerPresent == true {
            iterableConfig.inAppDelegate = self
-       }
+      }
 
-       if let authHandlerPresent = configDict[IterableConstants.authHandlerPresent] as? Bool, authHandlerPresent {
+       if let authHandlerPresent = configDict[.authHandlerPresent] as? Bool, authHandlerPresent {
            iterableConfig.authDelegate = self
        }
         
@@ -381,44 +486,11 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
 
 extension SwiftIterablePlugin: IterableURLDelegate {
     public func handle(iterableURL url: URL, inContext context: IterableActionContext) -> Bool {
-        // ITBInfo()
-        
-        // guard shouldEmit else {
-        //     return false
-        // }
-        
-        // let contextDict = ReactIterableAPI.contextToDictionary(context: context)
-        // sendEvent(withName: EventName.handleUrlCalled.rawValue,
-        //           body: ["url": url.absoluteString,
-        //                  "context": contextDict])
-        
-        return true
-    }
 
-    private static func contextToDictionary(context: IterableActionContext) -> [AnyHashable: Any] {
-        var result = [AnyHashable: Any]()
-        
-        let actionDict = actionToDictionary(action: context.action)
-        result["action"] = actionDict
-        result["source"] = context.source.rawValue
-        
-        return result
-    }
-    
-    private static func actionToDictionary(action: IterableAction) -> [AnyHashable: Any] {
-        var actionDict = [AnyHashable: Any]()
-        
-        actionDict["type"] = action.type
-        
-        if let data = action.data {
-            actionDict["data"] = data
-        }
-        
-        if let userInput = action.userInput {
-            actionDict["userInput"] = userInput
-        }
-        
-        return actionDict
+        SwiftIterablePlugin.channel?.invokeMethod("callListener", arguments: ["url": url.absoluteString,
+                                                                              "context": context.dictionary,
+                                                                              IterableConstants.Events.emitterName.rawValue: IterableConstants.Events.urlDelegate.rawValue])
+        return true
     }
 }
 
@@ -437,25 +509,19 @@ extension SwiftIterablePlugin: IterableCustomActionDelegate {
 
 extension SwiftIterablePlugin: IterableInAppDelegate {
     public func onNew(message: IterableInAppMessage) -> InAppShowResponse {
-        // ITBInfo()
-        
-        // guard shouldEmit else {
-        //     return .show
-        // }
-        
-        // let messageDict = message.toDict()
-        // sendEvent(withName: EventName.handleInAppCalled.rawValue, body: messageDict)
-        // let timeoutResult = inAppHandlerSemaphore.wait(timeout: .now() + 2.0)
-        
-        // if timeoutResult == .success {
-        //     ITBInfo("inAppShowResponse: \(inAppShowResponse == .show)")
-        //     return inAppShowResponse
-        // } else {
-        //     ITBInfo("timed out")
-        //     return .show
-        // }
+        var messageDict = message.dictionary
+        messageDict[IterableConstants.Events.emitterName.rawValue] =  IterableConstants.Events.inAppDelegate.rawValue
+        SwiftIterablePlugin.channel?.invokeMethod("callListener", arguments: messageDict)
 
-        return .show
+        let timeoutResult = inAppHandlerSemaphore.wait(timeout: .now() + 2.0)
+        
+        guard timeoutResult == .success else {
+            ITBInfo("timed out")
+            return .show
+        }
+        
+        ITBInfo("inAppShowResponse: \(inAppShowResponse == .show)")
+        return inAppShowResponse
     }
 }
 

@@ -20,7 +20,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  JsonEncoder encoder = const JsonEncoder.withIndent('  ');
   final config = IterableConfig(inAppDisplayInterval: 1.0);
 
   @override
@@ -32,6 +31,22 @@ class _MyAppState extends State<MyApp> {
     // Create IterableConfig with desired settings
     // var config = IterableConfig();
     // config.inAppDisplayInterval = 1.0;
+
+    // Set up custom handling for in-app messages
+    IterableInAppShowResponse inAppHandler(IterableInAppMessage message) {
+      debugPrint(
+          "🔥inAppDelegate Callback - message.customPayload: ${message.customPayload}");
+      debugPrint(
+          "🔥inAppDelegate Callback - message.customPayload.shouldSkip: ${message.customPayload?["shouldSkip"]}");
+      if (message.customPayload?["shouldSkip"] == true) {
+        return IterableInAppShowResponse.skip;
+      } else {
+        return IterableInAppShowResponse.show;
+      }
+    }
+
+    config.inAppDelegate = inAppHandler;
+
     // Initialize Iterable
     Iterable.initialize(IterableEnv.apiKey, config).then((success) => {
           if (success) {debugPrint('Iterable Initialized')}
@@ -46,7 +61,7 @@ class _MyAppState extends State<MyApp> {
         IterableButton(
             title: 'Set Email',
             onPressed: () =>
-                Iterable.setEmail("christina.schell+flutter4@iterable.com")),
+                Iterable.setEmail("christina.schell+flutter7@iterable.com")),
         IterableButton(
             title: 'Set User Id',
             onPressed: () => Iterable.setUserId("flutterUserId2")),
@@ -64,14 +79,14 @@ class _MyAppState extends State<MyApp> {
         IterableButton(
             title: 'Update Email',
             onPressed: () =>
-                Iterable.updateEmail("christina.schell+flutter5@iterable.com")
-                    .then((response) => debugPrint(encoder.convert(response)))),
+                Iterable.updateEmail("christina.schell+flutter8@iterable.com")
+                    .then((response) => debugPrint(jsonEncode(response)))),
         // 5. [DONE] Update user data
         IterableButton(
             title: 'Update User Data',
             onPressed: () =>
                 Iterable.updateUser({'newFlutterKey': 'def123'}, false)
-                    .then((response) => debugPrint(encoder.convert(response)))),
+                    .then((response) => debugPrint(jsonEncode(response)))),
         // 14. [DONE] Update user subscriptions (Settings tab)
         IterableButton(
             title: 'Update User Subscriptions',
@@ -87,7 +102,7 @@ class _MyAppState extends State<MyApp> {
                   Iterable.setEmailAndUserId(
                           "christina.schell+flutter6@iterable.com",
                           "flutterUserId3")
-                      .then((response) => debugPrint(encoder.convert(response)))
+                      .then((response) => debugPrint(jsonEncode(response)))
                 }),
         // 8. Push
         //  - [DONE] Foundation
@@ -134,18 +149,17 @@ class _MyAppState extends State<MyApp> {
       IterableButton(
           title: 'Get Last Push Payload',
           onPressed: () => {
-                // TODO: Fix to return a dictionary
-                Iterable.getLastPushPayload()
-                    .then((payload) => debugPrint(encoder.convert(payload)))
+                Iterable.getLastPushPayload().then(
+                    (payload) => debugPrint('Last Push Payload: $payload'))
               }),
-      // 11. [Continue - Fix] Deeplinking
+      // 11. [DONE] Deeplinking
       // 12. [DONE] Expose getMessages method
-      // [HERE] Other methods that RN exposes (trackInApp, trackPushOpen, etc)
+      // [DONE - NEED TO TEST] Other methods that RN exposes (trackInApp, trackPushOpen, etc)
       // 15. Implement delegates/listeners
       // Implement JWT Authentication
       // Deeplink handle method
       // 13. [MAYBE] Restyle and set up more realistic Sample app
-      // TEST
+      // TEST! TEST! TEST!
       IterableButton(
           title: 'Get In App Messages',
           onPressed: () => {
@@ -204,7 +218,8 @@ class _MyAppState extends State<MyApp> {
                         {
                           Iterable.inAppManager
                               .getHtmlContentForMessage(messages.first)
-                              .then((content) => debugPrint(content.toJson()))
+                              .then((content) =>
+                                  debugPrint(jsonEncode((content.toJson()))))
                         }
                     })
               }),
@@ -263,7 +278,7 @@ class _MyAppState extends State<MyApp> {
     debugPrint('========= In-App Messages =========');
     messages.asMap().forEach((index, message) => {
           debugPrint('message #${index + 1}:'),
-          developer.log(jsonEncode(message.toJson()))
+          developer.log(jsonEncode((message.toJson())))
         });
   }
 
@@ -281,7 +296,7 @@ class _MyAppState extends State<MyApp> {
                 Tab(icon: Icon(Icons.format_list_bulleted)),
               ],
             ),
-            title: const Text('Iterable Flutter Donut Shop'),
+            title: const Text('Iterable Flutter Example'),
           ),
           body: TabBarView(
             children: [
