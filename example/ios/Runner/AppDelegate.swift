@@ -24,11 +24,27 @@ import IterableSDK
         print("😀 device token: \(token)")
         IterableAPI.register(token: deviceToken)
     }
+    
+    // MARK: InApp
     override func application(_ application: UIApplication,
                               didReceiveRemoteNotification userInfo: [AnyHashable : Any]) {
         IterableAppIntegration.application(application, didReceiveRemoteNotification: userInfo, fetchCompletionHandler: { _ in })
     }
     
+    // MARK: Universal Link Handling
+    override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        IterableAPI.handle(universalLink: url)
+    }
+    
+    override func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+      guard let url = userActivity.webpageURL else {
+          return false
+      }
+
+      return IterableAPI.handle(universalLink: url)
+    }
+    
+    // MARK: Push Notifications
     private func setupNotifications() {
         UNUserNotificationCenter.current().delegate = self
         UNUserNotificationCenter.current().getNotificationSettings { settings in

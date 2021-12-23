@@ -5,6 +5,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 import 'package:iterable/iterable.dart';
 import 'package:iterable/common.dart';
+import 'package:iterable_example/deeplink_handler.dart';
 import 'env.dart'; // TODO: Update env.example.dart
 import 'iterable_button.dart';
 
@@ -19,12 +20,20 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   final config = IterableConfig(inAppDisplayInterval: 1.0);
+  late TabController _tabController;
 
   @override
   void initState() {
+    _tabController = TabController(vsync: this, length: 3);
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   ListView _identityListView() {
@@ -34,10 +43,6 @@ class _MyAppState extends State<MyApp> {
 
     // Set up custom handling for in-app messages
     IterableInAppShowResponse inAppHandler(IterableInAppMessage message) {
-      debugPrint(
-          "🔥inAppDelegate Callback - message.customPayload: ${message.customPayload}");
-      debugPrint(
-          "🔥inAppDelegate Callback - message.customPayload.shouldSkip: ${message.customPayload?["shouldSkip"]}");
       if (message.customPayload?["shouldSkip"] == true) {
         return IterableInAppShowResponse.skip;
       } else {
@@ -45,7 +50,17 @@ class _MyAppState extends State<MyApp> {
       }
     }
 
+//https://medium.com/flutter-community/deep-links-and-flutter-applications-how-to-handle-them-properly-8c9865af9283
+// https://stackoverflow.com/questions/50887790/flutter-changing-the-current-tab-in-tab-bar-view-using-a-button
+    bool urlHandler(String url, IterableActionContext context) {
+      debugPrint("🔥urlHandler url: $url");
+      int tabIndex = DeeplinkHandler.handle(url).toInt();
+      _tabController.animateTo(tabIndex);
+      return true;
+    }
+
     config.inAppDelegate = inAppHandler;
+    config.urlHandler = urlHandler;
 
     // Initialize Iterable
     Iterable.initialize(IterableEnv.apiKey, config).then((success) => {
@@ -289,8 +304,9 @@ class _MyAppState extends State<MyApp> {
         length: 3,
         child: Scaffold(
           appBar: AppBar(
-            bottom: const TabBar(
-              tabs: [
+            bottom: TabBar(
+              controller: _tabController,
+              tabs: const [
                 Tab(icon: Icon(Icons.person)),
                 Tab(icon: Icon(Icons.shopping_cart)),
                 Tab(icon: Icon(Icons.format_list_bulleted)),
@@ -299,6 +315,7 @@ class _MyAppState extends State<MyApp> {
             title: const Text('Iterable Flutter Example'),
           ),
           body: TabBarView(
+            controller: _tabController,
             children: [
               _identityListView(),
               _commerceListView(),

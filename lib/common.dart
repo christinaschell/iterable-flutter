@@ -31,7 +31,7 @@ class IterableConfig {
   double? expiringAuthTokenRefreshPeriod;
   int? logLevel;
   InAppHandlerCallback? inAppDelegate;
-  // Function? urlHanler; // stub urlHandler
+  UrlHandlerCallback? urlHandler;
 
   IterableConfig(
       {bool? remoteNotificationsEnabled,
@@ -60,18 +60,24 @@ class IterableConfig {
   }
 }
 
-class IterableActionSource {
-  final int _value;
+enum ActionSourceType { push, appLink, inApp }
 
-  const IterableActionSource._(this._value);
+class IterableActionSource {
+  late ActionSourceType type;
+
+  IterableActionSource({required this.type});
 
   int toInt() {
-    return _value;
+    return type.index;
   }
 
-  static const IterableActionSource push = IterableActionSource._(0);
-  static const IterableActionSource appLink = IterableActionSource._(1);
-  static const IterableActionSource inApp = IterableActionSource._(2);
+  IterableActionSource.fromIndex(int index) {
+    type = ActionSourceType.values[index];
+  }
+
+  static IterableActionSource from(int number) {
+    return IterableActionSource.fromIndex(number);
+  }
 }
 
 class IterableAction {
@@ -86,8 +92,8 @@ class IterableAction {
   }
 
   // Note: might not need
-  Map<String, dynamic> toJson() =>
-      {'type': type, 'data': data, 'userInput': userInput};
+  // Map<String, dynamic> toJson() =>
+  //     {'type': type, 'data': data, 'userInput': userInput};
 
   static IterableAction from(Map<String, dynamic> dictionary) {
     return IterableAction(dictionary["type"],
@@ -108,8 +114,9 @@ class IterableActionContext {
   Map<String, dynamic> toJson() => {'action': action, 'source': source};
 
   static IterableActionContext from(Map<String, dynamic> dictionary) {
-    IterableAction action = IterableAction.from(dictionary);
-    IterableActionSource source = dictionary["source"];
+    IterableAction action = IterableAction.from(dictionary["action"]);
+    IterableActionSource source =
+        IterableActionSource.from(dictionary["source"]);
     return IterableActionContext(action, source);
   }
 }

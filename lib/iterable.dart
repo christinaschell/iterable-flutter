@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
-
+import 'package:url_launcher/url_launcher.dart' as URLLaucher;
 import 'common.dart';
 import 'events/event_emitter.dart';
 import 'dart:developer' as developer;
@@ -21,16 +21,17 @@ class Iterable {
   ///
   /// [Future<bool>] upon success or failure
   static Future<bool> initialize(String apiKey, IterableConfig config) async {
-    bool inAppDelegatePresent = config.inAppDelegate != null;
-    debugPrint("🔥config.inAppDelegate: ${config.inAppDelegate}");
-    debugPrint("🔥inAppDelegatePresent: $inAppDelegatePresent");
+    bool inAppHandlerPresent = config.inAppDelegate != null;
+    bool urlHandlerPresent = config.urlHandler != null;
+    debugPrint("🔥config.urlDelegate: ${config.urlHandler}");
+    debugPrint("🔥urlDelegatePresent: $urlHandlerPresent");
     var initialized = await _channel.invokeMethod('initialize', {
       'config': {
         'remoteNotificationsEnabled': config.remoteNotificationsEnabled,
         'pushIntegrationName': config.pushIntegrationName,
-        'urlHandlerPresent': config.urlHandlerPresent,
+        'urlHandlerPresent': urlHandlerPresent,
         'customActionHandlerPresent': config.customActionHandlerPresent,
-        'inAppHandlerPresent': inAppDelegatePresent,
+        'inAppHandlerPresent': inAppHandlerPresent,
         'authHandlerPresent': config.authHandlerPresent,
         'autoPushRegistration': config.autoPushRegistration,
         'inAppDisplayInterval': config.inAppDisplayInterval,
@@ -41,8 +42,11 @@ class Iterable {
       'pluginName': pluginName,
       'apiKey': apiKey
     });
-    if (inAppDelegatePresent) {
+    if (inAppHandlerPresent) {
       setInAppHandler(config.inAppDelegate!);
+    }
+    if (urlHandlerPresent) {
+      setUrlHandler(config.urlHandler!);
     }
     return initialized;
   }
@@ -233,6 +237,10 @@ class Iterable {
     }
   }
 
+  static Future<bool> handleAppLink(String link) async {
+    return Iterable.handleAppLink(link);
+  }
+
 // not sure if needed
   static setInAppShowResponse(IterableInAppShowResponse response) {
     _channel.invokeMethod(
@@ -254,11 +262,12 @@ class Iterable {
       String url, IterableActionContext context, Function callback) {
     bool handledResult = callback(url, context);
     if (handledResult == false) {
-      // Linking.canOpenURL(url)
-      //   .then(canOpen => {
-      //     if (canOpen) { Linking.openURL(url) }
-      //   })
-      //   .catch(reason => { console.log("could not open url: " + reason) })
+      URLLaucher.canLaunch(url).then((canOpen) => {
+            if (canOpen)
+              {URLLaucher.launch(url)}
+            else
+              {debugPrint("Could not open Url.")}
+          });
     }
   }
 

@@ -69,6 +69,8 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
       setReadForMessage(call: call)
     } else if call.method == "getHtmlContentForMessage" {
       getHtmlInAppContent(call: call, result: result)
+    } else if call.method == "handleAppLink" {
+      handleAppLink(call: call, result: result)
     } else if call.method == "setAutoDisplayPaused" {
       setAutoDisplayPaused(call: call)
     } else if call.method == "setInAppShowResponse" {
@@ -430,6 +432,15 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
        }
        self.inAppShowResponse = InAppShowResponse.from(number: showResponseNumber)
        inAppHandlerSemaphore.signal()
+    }
+
+    func handleAppLink(call: FlutterMethodCall, result: @escaping FlutterResult) {
+      guard let arguments = call.arguments as? [String: Any],
+      let appLink = arguments["link"] as? String, 
+      let url = URL(string: appLink) else {
+                  return
+      }
+      result(IterableAPI.handle(universalLink: url))
     }
 
     // MARK: Private
