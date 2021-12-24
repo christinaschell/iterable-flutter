@@ -75,6 +75,8 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
       setAutoDisplayPaused(call: call)
     } else if call.method == "setInAppShowResponse" {
         setInAppShowResponse(call: call)
+    } else if call.method == "setAuthToken" {
+        setAuthToken(call: call)
     } else if call.method == "wakeApp" {
       // Android only
     } else {
@@ -100,12 +102,11 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
   }
                            
   func setEmail(call: FlutterMethodCall) {
-    guard let arguments = call.arguments as? [String: Any],
-     let email = arguments["email"] as? String else {
+    guard let arguments = call.arguments as? [String: Any] else {
        return
      }
     //ITBInfo()
-    IterableAPI.email = email
+    IterableAPI.email = arguments["email"] as? String
   } 
 
   func getEmail(result: @escaping FlutterResult) {
@@ -127,12 +128,11 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
   }
 
   func setUserId(call: FlutterMethodCall) {
-    guard let arguments = call.arguments as? [String: Any],
-     let userId = arguments["userId"] as? String else {
+    guard let arguments = call.arguments as? [String: Any] else {
        return
      }
     //ITBInfo()
-    IterableAPI.userId = userId
+    IterableAPI.userId = arguments["userId"] as? String
   } 
 
   func getUserId(result: @escaping FlutterResult) {
@@ -401,13 +401,11 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
         
         guard let message = IterableAPI.inAppManager.getMessage(withId: messageId) else {
             ITBError("Could not find message with id: \(messageId)")
-            //result("Could not find message with id: \(messageId)")
             return
         }
         
         guard let content = message.content as? IterableHtmlInAppContent else {
             ITBError("Could not parse message content as HTML")
-            //result("Could not parse message content as HTML")
             return
         }
         
@@ -443,11 +441,24 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
       result(IterableAPI.handle(universalLink: url))
     }
 
+    func setAuthToken(call: FlutterMethodCall) {
+      guard let arguments = call.arguments as? [String: Any],
+      let authToken = arguments["token"] as? String else {
+          return
+      }
+      passedAuthToken = authToken
+      authHandlerSemaphore.signal()
+    }
+
     // MARK: Private
 
     // Handling in-app delegate
     private var inAppShowResponse = InAppShowResponse.show
     private var inAppHandlerSemaphore = DispatchSemaphore(value: 0)
+
+    // Handling custom action delegate
+    private var passedAuthToken: String?
+    private var authHandlerSemaphore = DispatchSemaphore(value: 0)
 
     private func internalInitialize(withApiKey apiKey: String,
                             config configDict: [String: Any],
@@ -498,22 +509,25 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
 extension SwiftIterablePlugin: IterableURLDelegate {
     public func handle(iterableURL url: URL, inContext context: IterableActionContext) -> Bool {
 
-        SwiftIterablePlugin.channel?.invokeMethod("callListener", arguments: ["url": url.absoluteString,
-                                                                              "context": context.dictionary,
-                                                                              IterableConstants.Events.emitterName.rawValue: IterableConstants.Events.urlDelegate.rawValue])
+        SwiftIterablePlugin
+          .channel?
+          .invokeMethod("callListener",
+                        arguments: ["url": url.absoluteString,
+                                    "context": context.dictionary,
+                                    ITBEmitter.emitterName: ITBEmitter.urlDelegate])
         return true
     }
 }
 
 extension SwiftIterablePlugin: IterableCustomActionDelegate {
     public func handle(iterableCustomAction action: IterableAction, inContext context: IterableActionContext) -> Bool {
-        // ITBInfo()
         
-        // let actionDict = ReactIterableAPI.actionToDictionary(action: action)
-        // let contextDict = ReactIterableAPI.contextToDictionary(context: context)
-        
-        // sendEvent(withName: EventName.handleCustomActionCalled.rawValue, body: ["action": actionDict, "context": contextDict])
-        
+        SwiftIterablePlugin
+          .channel?
+          .invokeMethod("callListener",
+                        arguments: ["action": action.dictionary,
+                        "context": context.dictionary,
+                                    ITBEmitter.emitterName: ITBEmitter.customActionDelegate])
         return true
     }
 }
@@ -521,7 +535,7 @@ extension SwiftIterablePlugin: IterableCustomActionDelegate {
 extension SwiftIterablePlugin: IterableInAppDelegate {
     public func onNew(message: IterableInAppMessage) -> InAppShowResponse {
         var messageDict = message.dictionary
-        messageDict[IterableConstants.Events.emitterName.rawValue] =  IterableConstants.Events.inAppDelegate.rawValue
+        messageDict[ITBEmitter.emitterName] =  ITBEmitter.inAppDelegate
         SwiftIterablePlugin.channel?.invokeMethod("callListener", arguments: messageDict)
 
         let timeoutResult = inAppHandlerSemaphore.wait(timeout: .now() + 2.0)
@@ -538,27 +552,27 @@ extension SwiftIterablePlugin: IterableInAppDelegate {
 
 extension SwiftIterablePlugin: IterableAuthDelegate {
     public func onAuthTokenRequested(completion: @escaping AuthTokenRetrievalHandler) {
-        // ITBInfo()
-        
-    //     DispatchQueue.global(qos: .userInitiated).async {
-    //         self.sendEvent(withName: EventName.handleAuthCalled.rawValue,
-    //                   body: nil)
+        DispatchQueue.global(qos: .userInitiated).async {
             
-    //         let authTokenRetrievalResult = self.authHandlerSemaphore.wait(timeout: .now() + 30.0)
+            SwiftIterablePlugin
+              .channel?
+              .invokeMethod("callListener",
+                            arguments: [ITBEmitter.emitterName: ITBEmitter.authDelegate])
             
-    //         if authTokenRetrievalResult == .success {
-    //             ITBInfo("authTokenRetrieval successful")
-                
-    //             DispatchQueue.main.async {
-    //                 completion(self.passedAuthToken)
-    //             }
-    //         } else {
-    //             ITBInfo("authTokenRetrieval timed out")
-                
-    //             DispatchQueue.main.async {
-    //                 completion(nil)
-    //             }
-    //         }
-    //     }
+            // 30 sec too long?
+            let authTokenRetrievalResult = self.authHandlerSemaphore.wait(timeout: .now() + 30.0)
+            
+            if authTokenRetrievalResult == .success {
+                ITBInfo("authTokenRetrieval successful")
+                DispatchQueue.main.async {
+                    completion(self.passedAuthToken)
+                }
+            } else {
+                ITBInfo("authTokenRetrieval timed out")
+                DispatchQueue.main.async {
+                    completion(nil)
+                }
+            }
+        }
     }
 }

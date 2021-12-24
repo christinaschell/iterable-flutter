@@ -1,16 +1,16 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
-import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:iterable/iterable.dart';
 import 'package:iterable/common.dart';
 import 'package:iterable_example/deeplink_handler.dart';
-import 'env.dart'; // TODO: Update env.example.dart
+import 'package:rflutter_alert/rflutter_alert.dart';
+import 'env.dart';
 import 'iterable_button.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MaterialApp(home: MyApp()));
 }
 
 class MyApp extends StatefulWidget {
@@ -37,10 +37,6 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   }
 
   ListView _identityListView() {
-    // Create IterableConfig with desired settings
-    // var config = IterableConfig();
-    // config.inAppDisplayInterval = 1.0;
-
     // Set up custom handling for in-app messages
     IterableInAppShowResponse inAppHandler(IterableInAppMessage message) {
       if (message.customPayload?["shouldSkip"] == true) {
@@ -50,8 +46,21 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
       }
     }
 
+    // Set up custom action handling for the action:// url scheme
+    bool customActionHandler(
+        IterableAction action, IterableActionContext actionContext) {
+      if (action.type.contains("discount?promo=")) {
+        String promoCode = action.type.split("?promo=")[1];
+        // TODO: fix multiple alerts showing
+        _showAlert(promoCode);
+        return true;
+      }
+      return false;
+    }
+
 //https://medium.com/flutter-community/deep-links-and-flutter-applications-how-to-handle-them-properly-8c9865af9283
 // https://stackoverflow.com/questions/50887790/flutter-changing-the-current-tab-in-tab-bar-view-using-a-button
+    // Set up custom routing for deeplinks
     bool urlHandler(String url, IterableActionContext context) {
       debugPrint("🔥urlHandler url: $url");
       int tabIndex = DeeplinkHandler.handle(url).toInt();
@@ -59,11 +68,30 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
       return true;
     }
 
-    config.inAppDelegate = inAppHandler;
+    // Set up an auth handler that will pass along a JWT token retrieved from your service
+    // Not needed if JWT is not enabled for your api key
+    Future<String> authHandler() async {
+      // This is simulating async retrieval of a JWT token from your server.
+      // An actual implementation would take a JWT secret, email/userId, and
+      // return the token. For even more security, requre a username/password
+      // for your JWT retrieval endpoint.
+      //
+      // For testing, simply replace IterableEnv.jwtToken
+      // with an actual JWT Token created manually
+      return await Future.delayed(
+              const Duration(milliseconds: 100), () => IterableEnv.jwtToken)
+          .catchError((err) {
+        debugPrint("Error retrieving JWT from server: $err");
+      });
+    }
+
+    config.inAppHandler = inAppHandler;
     config.urlHandler = urlHandler;
+    config.customActionHandler = customActionHandler;
+    // config.authHandler = authHandler;
 
     // Initialize Iterable
-    Iterable.initialize(IterableEnv.apiKey, config).then((success) => {
+    IterableAPI.initialize(IterableEnv.apiKey, config).then((success) => {
           if (success) {debugPrint('Iterable Initialized')}
         });
 
@@ -76,36 +104,36 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         IterableButton(
             title: 'Set Email',
             onPressed: () =>
-                Iterable.setEmail("christina.schell+flutter7@iterable.com")),
+                IterableAPI.setEmail("christina.schell+flutter@iterable.com")),
         IterableButton(
             title: 'Set User Id',
-            onPressed: () => Iterable.setUserId("flutterUserId2")),
+            onPressed: () => IterableAPI.setUserId("flutterUserId2")),
         // 2. [DONE] Get user email
         IterableButton(
             title: 'Get Email',
-            onPressed: () => Iterable.getEmail()
+            onPressed: () => IterableAPI.getEmail()
                 .then((email) => debugPrint('Current Email: $email'))),
         // 3. [DONE] Get user id
         IterableButton(
             title: 'Get User Id',
-            onPressed: () => Iterable.getUserId()
+            onPressed: () => IterableAPI.getUserId()
                 .then((userId) => debugPrint('Current User Id: $userId'))),
         // 4. [DONE] Update user email
         IterableButton(
             title: 'Update Email',
-            onPressed: () =>
-                Iterable.updateEmail("christina.schell+flutter8@iterable.com")
-                    .then((response) => debugPrint(jsonEncode(response)))),
+            onPressed: () => IterableAPI.updateEmail(
+                    "christina.schell+flutter8@iterable.com")
+                .then((response) => debugPrint(jsonEncode(response)))),
         // 5. [DONE] Update user data
         IterableButton(
             title: 'Update User Data',
             onPressed: () =>
-                Iterable.updateUser({'newFlutterKey': 'def123'}, false)
+                IterableAPI.updateUser({'newFlutterKey': 'def123'}, false)
                     .then((response) => debugPrint(jsonEncode(response)))),
         // 14. [DONE] Update user subscriptions (Settings tab)
         IterableButton(
             title: 'Update User Subscriptions',
-            onPressed: () => Iterable.updateSubscriptions(
+            onPressed: () => IterableAPI.updateSubscriptions(
                 emailListIds: [1234],
                 subscribedMessageTypeIds: [12345],
                 unsubscribedChannelIds: [67890],
@@ -114,10 +142,16 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         IterableButton(
             title: 'Set Email and User Id',
             onPressed: () => {
-                  Iterable.setEmailAndUserId(
+                  IterableAPI.setEmailAndUserId(
                           "christina.schell+flutter6@iterable.com",
                           "flutterUserId3")
                       .then((response) => debugPrint(jsonEncode(response)))
+                }),
+        IterableButton(
+            title: 'Logout User',
+            onPressed: () => {
+                  IterableAPI.setEmail(null),
+                  IterableAPI.setUserId(null),
                 }),
         // 8. Push
         //  - [DONE] Foundation
@@ -137,17 +171,17 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
       // 7. [DONE] Use the Commerce API to track a purchase
       IterableButton(
           title: 'Add To Cart',
-          onPressed: () => Iterable.updateCart(_addToCartItems())),
+          onPressed: () => IterableAPI.updateCart(_addToCartItems())),
       IterableButton(
           title: 'Remove From Cart',
-          onPressed: () => Iterable.updateCart(_removeFromCartItems())),
+          onPressed: () => IterableAPI.updateCart(_removeFromCartItems())),
       IterableButton(
           title: 'Update Quantity',
-          onPressed: () => Iterable.updateCart(_updateQtyItems())),
+          onPressed: () => IterableAPI.updateCart(_updateQtyItems())),
       IterableButton(
           title: 'Track Purchase',
-          onPressed: () =>
-              Iterable.trackPurchase(19.98, _purchaseItems(), {'rewards': 100}))
+          onPressed: () => IterableAPI.trackPurchase(
+              19.98, _purchaseItems(), {'rewards': 100}))
     ]);
   }
 
@@ -158,39 +192,40 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
       // 1. [DONE] Track a custom event
       IterableButton(
           title: 'Track Event',
-          onPressed: () => Iterable.trackEvent(
+          onPressed: () => IterableAPI.trackEvent(
               'Test Event From Flutter', {'eventDataField': 'abc123'})),
       // 10. [DONE] Get last push payload
       IterableButton(
           title: 'Get Last Push Payload',
           onPressed: () => {
-                Iterable.getLastPushPayload().then(
+                IterableAPI.getLastPushPayload().then(
                     (payload) => debugPrint('Last Push Payload: $payload'))
               }),
       // 11. [DONE] Deeplinking
       // 12. [DONE] Expose getMessages method
       // [DONE - NEED TO TEST] Other methods that RN exposes (trackInApp, trackPushOpen, etc)
-      // 15. Implement delegates/listeners
-      // Implement JWT Authentication
-      // Deeplink handle method
-      // 13. [MAYBE] Restyle and set up more realistic Sample app
-      // TEST! TEST! TEST!
+      // 15. [DONE] Implement delegates/listeners
+      // [DONE] Implement JWT Authentication
+      // [DONE] Deeplink handle method
+      // 13. [MAYBE] Restyle and set up more realistic Sample app - https://www.raywenderlich.com/19457817-flutter-navigator-2-0-and-deep-links
+      // Reorganize files
+      //TEST! TEST! TEST!
       IterableButton(
           title: 'Get In App Messages',
           onPressed: () => {
-                Iterable.inAppManager
+                IterableAPI.inAppManager
                     .getMessages()
                     .then((messages) => _logInAppMessages(messages))
               }),
       IterableButton(
           title: 'Show In App Message',
           onPressed: () => {
-                Iterable.inAppManager.getMessages().then((messages) => {
+                IterableAPI.inAppManager.getMessages().then((messages) => {
                       if (messages.isEmpty)
                         {_logInAppError("Show Message")}
                       else
                         {
-                          Iterable.inAppManager
+                          IterableAPI.inAppManager
                               .showMessage(messages.first, true)
                         }
                     })
@@ -198,12 +233,12 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
       IterableButton(
           title: 'Remove In App Message',
           onPressed: () => {
-                Iterable.inAppManager.getMessages().then((messages) => {
+                IterableAPI.inAppManager.getMessages().then((messages) => {
                       if (messages.isEmpty)
                         {_logInAppError("Remove Message")}
                       else
                         {
-                          Iterable.inAppManager.removeMessage(
+                          IterableAPI.inAppManager.removeMessage(
                               messages.first,
                               IterableInAppLocation.inApp,
                               IterableInAppDeleteSource.deleteButton)
@@ -213,12 +248,12 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
       IterableButton(
           title: 'Set Read For Message',
           onPressed: () => {
-                Iterable.inAppManager.getMessages().then((messages) => {
+                IterableAPI.inAppManager.getMessages().then((messages) => {
                       if (messages.isEmpty)
                         {_logInAppError("Set Read For Message")}
                       else
                         {
-                          Iterable.inAppManager
+                          IterableAPI.inAppManager
                               .setReadForMessage(messages.first, true)
                         }
                     })
@@ -226,12 +261,12 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
       IterableButton(
           title: 'Get HTML Content For Message',
           onPressed: () => {
-                Iterable.inAppManager.getMessages().then((messages) => {
+                IterableAPI.inAppManager.getMessages().then((messages) => {
                       if (messages.isEmpty)
                         {_logInAppError("Get HTML Content For Message")}
                       else
                         {
-                          Iterable.inAppManager
+                          IterableAPI.inAppManager
                               .getHtmlContentForMessage(messages.first)
                               .then((content) =>
                                   debugPrint(jsonEncode((content.toJson()))))
@@ -240,7 +275,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
               }),
       IterableButton(
           title: 'Set Auto Display Paused',
-          onPressed: () => Iterable.inAppManager.setAutoDisplayPaused(true))
+          onPressed: () => IterableAPI.inAppManager.setAutoDisplayPaused(false))
     ]);
   }
 
@@ -295,6 +330,47 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
           debugPrint('message #${index + 1}:'),
           developer.log(jsonEncode((message.toJson())))
         });
+  }
+
+  // TODO: Style this better
+  void _showAlert(String promoCode) {
+    var alertStyle = AlertStyle(
+      animationType: AnimationType.fromTop,
+      isCloseButton: false,
+      isOverlayTapDismiss: false,
+      descStyle: const TextStyle(fontWeight: FontWeight.bold),
+      descTextAlign: TextAlign.start,
+      animationDuration: const Duration(milliseconds: 400),
+      alertBorder: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(0.0),
+        side: const BorderSide(
+          color: Colors.grey,
+        ),
+      ),
+      titleStyle: const TextStyle(
+        color: Colors.red,
+      ),
+      alertAlignment: Alignment.center,
+    );
+
+    Alert(
+      context: context,
+      style: alertStyle,
+      type: AlertType.success,
+      title: "Discount Activated!",
+      desc: "Apply promo code $promoCode at checkout.",
+      buttons: [
+        DialogButton(
+          child: const Text(
+            "COOL",
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          onPressed: () => Navigator.pop(context),
+          color: const Color.fromRGBO(0, 179, 134, 1.0),
+          radius: BorderRadius.circular(0.0),
+        ),
+      ],
+    ).show();
   }
 
   @override

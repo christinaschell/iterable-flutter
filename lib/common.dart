@@ -3,10 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 // ignore_for_file: prefer_initializing_formals
 
-typedef InAppHandlerCallback = IterableInAppShowResponse Function(
+typedef IterableInAppHandler = IterableInAppShowResponse Function(
     IterableInAppMessage msg);
-typedef UrlHandlerCallback = bool Function(
+typedef IterableCustomActionHandler = bool Function(
+    IterableAction action, IterableActionContext context);
+typedef IterableUrlHandler = bool Function(
     String url, IterableActionContext context);
+typedef IterableAuthHandler = Future<String> Function();
 
 class Utilities {
   static T? cast<T>(x) => x is T ? x : null;
@@ -15,6 +18,8 @@ class Utilities {
 class EventListenerNames {
   static const name = 'emitterName';
   static const inAppHandler = 'IterableFlutter.InAppDelegateEvent';
+  static const customActionHandler =
+      'IterableFlutter.CustomActionDelegateEvent';
   static const urlHandler = 'IterableFlutter.UrlDelegateEvent';
   static const authHandler = 'IterableFlutter.AuthDelegateEvent';
 }
@@ -22,41 +27,37 @@ class EventListenerNames {
 class IterableConfig {
   bool? remoteNotificationsEnabled;
   String? pushIntegrationName;
-  String? urlHandlerPresent;
-  String? customActionHandlerPresent;
-  String? inAppHandlerPresent;
-  String? authHandlerPresent;
   bool? autoPushRegistration; // default true
   double? inAppDisplayInterval;
   double? expiringAuthTokenRefreshPeriod;
   int? logLevel;
-  InAppHandlerCallback? inAppDelegate;
-  UrlHandlerCallback? urlHandler;
+  IterableInAppHandler? inAppHandler;
+  IterableCustomActionHandler? customActionHandler;
+  IterableUrlHandler? urlHandler;
+  IterableAuthHandler? authHandler;
 
   IterableConfig(
       {bool? remoteNotificationsEnabled,
       String? pushIntegrationName,
-      String? urlHandlerPresent,
-      String? customActionHandlerPresent,
-      String? inAppHandlerPresent,
-      String? authHandlerPresent,
       bool? autoPushRegistration,
       double? inAppDisplayInterval,
       double? expiringAuthTokenRefreshPeriod,
       IterableLogLevel? logLevel,
-      InAppHandlerCallback? inAppDelegate}) {
+      IterableInAppHandler? inAppHandler,
+      IterableCustomActionHandler? customActionHandler,
+      IterableUrlHandler? urlHandler,
+      IterableAuthHandler? authHandler}) {
     this.remoteNotificationsEnabled = remoteNotificationsEnabled ?? true;
     this.pushIntegrationName = pushIntegrationName;
-    this.urlHandlerPresent = urlHandlerPresent;
-    this.customActionHandlerPresent = customActionHandlerPresent;
-    this.inAppHandlerPresent = inAppHandlerPresent;
-    this.authHandlerPresent = authHandlerPresent;
     this.autoPushRegistration = autoPushRegistration ?? true;
     this.inAppDisplayInterval = inAppDisplayInterval ?? 30.0;
     this.expiringAuthTokenRefreshPeriod =
         expiringAuthTokenRefreshPeriod ?? 60.0;
     this.logLevel = logLevel?.toInt() ?? IterableLogLevel.info.toInt();
-    this.inAppDelegate = inAppDelegate;
+    this.inAppHandler = inAppHandler;
+    this.customActionHandler = customActionHandler;
+    this.urlHandler = urlHandler;
+    this.authHandler = authHandler;
   }
 }
 
@@ -111,7 +112,7 @@ class IterableActionContext {
   }
 
   // Note: might not need
-  Map<String, dynamic> toJson() => {'action': action, 'source': source};
+  // Map<String, dynamic> toJson() => {'action': action, 'source': source};
 
   static IterableActionContext from(Map<String, dynamic> dictionary) {
     IterableAction action = IterableAction.from(dictionary["action"]);

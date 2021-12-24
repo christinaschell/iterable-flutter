@@ -40,7 +40,7 @@ import IterableSDK
       guard let url = userActivity.webpageURL else {
           return false
       }
-
+        
       return IterableAPI.handle(universalLink: url)
     }
     

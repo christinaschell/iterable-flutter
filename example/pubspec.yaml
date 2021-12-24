@@ -17,6 +17,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  rflutter_alert: ^2.0.4
 
   iterable:
     # When depending on this package from a real application you should use:

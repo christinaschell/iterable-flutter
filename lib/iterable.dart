@@ -1,38 +1,32 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart';
-import 'package:url_launcher/url_launcher.dart' as URLLaucher;
 import 'common.dart';
-import 'events/event_emitter.dart';
-import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
+import 'events/event_handler.dart';
 
-class Iterable {
-  static const String pluginName = 'IterableFlutter';
+class IterableAPI {
+  static const String pluginName = 'IterableFlutterBeta';
   static const String pluginVersion = '0.0.1';
   static const MethodChannel _channel = MethodChannel('iterable');
-  static EventEmitter emitter = EventEmitter();
   static var inAppManager = IterableInAppManager();
-  static final Map<String, Function> _listeners = {};
-  static Timer? timer;
+  static var events = IterableEventHandler(channel: _channel);
 
   /// Initializes Iterable with an [apiKey] and an Iterable [config] object
   ///
   /// [Future<bool>] upon success or failure
   static Future<bool> initialize(String apiKey, IterableConfig config) async {
-    bool inAppHandlerPresent = config.inAppDelegate != null;
+    bool inAppHandlerPresent = config.inAppHandler != null;
     bool urlHandlerPresent = config.urlHandler != null;
-    debugPrint("🔥config.urlDelegate: ${config.urlHandler}");
-    debugPrint("🔥urlDelegatePresent: $urlHandlerPresent");
+    bool customActionHandlerPresent = config.customActionHandler != null;
+    bool authHandlerPresent = config.authHandler != null;
+
     var initialized = await _channel.invokeMethod('initialize', {
       'config': {
         'remoteNotificationsEnabled': config.remoteNotificationsEnabled,
         'pushIntegrationName': config.pushIntegrationName,
         'urlHandlerPresent': urlHandlerPresent,
-        'customActionHandlerPresent': config.customActionHandlerPresent,
+        'customActionHandlerPresent': customActionHandlerPresent,
         'inAppHandlerPresent': inAppHandlerPresent,
-        'authHandlerPresent': config.authHandlerPresent,
+        'authHandlerPresent': authHandlerPresent,
         'autoPushRegistration': config.autoPushRegistration,
         'inAppDisplayInterval': config.inAppDisplayInterval,
         'expiringAuthTokenRefreshPeriod': config.expiringAuthTokenRefreshPeriod,
@@ -43,17 +37,25 @@ class Iterable {
       'apiKey': apiKey
     });
     if (inAppHandlerPresent) {
-      setInAppHandler(config.inAppDelegate!);
+      events.setEventHandler(
+          EventListenerNames.inAppHandler, config.inAppHandler!);
     }
     if (urlHandlerPresent) {
-      setUrlHandler(config.urlHandler!);
+      events.setEventHandler(EventListenerNames.urlHandler, config.urlHandler!);
+    }
+    if (customActionHandlerPresent) {
+      events.setEventHandler(
+          EventListenerNames.customActionHandler, config.customActionHandler!);
+    }
+    if (authHandlerPresent) {
+      events.setEventHandler(
+          EventListenerNames.authHandler, config.authHandler!);
     }
     return initialized;
   }
 
   /// Sets [email] on the user profile
-  static setEmail(String email) {
-    developer.log("setEmail in iterable.dart: " + email);
+  static setEmail(String? email) {
     _channel.invokeMethod('setEmail', {'email': email});
   }
 
@@ -72,7 +74,7 @@ class Iterable {
   }
 
   /// Sets user [id] on the user profile
-  static setUserId(String id) {
+  static setUserId(String? id) {
     _channel.invokeMethod('setUserId', {'userId': id});
   }
 
@@ -230,101 +232,7 @@ class Iterable {
     });
   }
 
-  /// Wakes the app in Android
-  static wakeApp() {
-    if (Platform.isAndroid) {
-      _channel.invokeMethod('wakeApp');
-    }
-  }
-
-  static Future<bool> handleAppLink(String link) async {
-    return Iterable.handleAppLink(link);
-  }
-
-// not sure if needed
-  static setInAppShowResponse(IterableInAppShowResponse response) {
-    _channel.invokeMethod(
-        'setInAppShowResponse', {'showResponse': response.toInt()});
-  }
-
-  /// Sets the callback for the [InAppHanlder]
-  static setInAppHandler(InAppHandlerCallback callback) {
-    _listeners[EventListenerNames.inAppHandler] = callback;
-    _handleListener(EventListenerNames.inAppHandler);
-  }
-
-  static setUrlHandler(UrlHandlerCallback callback) {
-    _listeners[EventListenerNames.urlHandler] = callback;
-    _handleListener(EventListenerNames.urlHandler);
-  }
-
-  static callUrlHandler(
-      String url, IterableActionContext context, Function callback) {
-    bool handledResult = callback(url, context);
-    if (handledResult == false) {
-      URLLaucher.canLaunch(url).then((canOpen) => {
-            if (canOpen)
-              {URLLaucher.launch(url)}
-            else
-              {debugPrint("Could not open Url.")}
-          });
-    }
-  }
-
-  static Future<void> _methodCallHandler(MethodCall call) async {
-    if (call.method.toString() == 'callListener') {
-      emitter.emit(
-          call.arguments[EventListenerNames.name], null, call.arguments);
-    }
-  }
-
-  static _handleListener(String eventName) {
-    _channel.setMethodCallHandler(_methodCallHandler);
-    emitter.on(eventName, {}, (ev, context) {
-      switch (eventName) {
-        case EventListenerNames.inAppHandler:
-          var encodedData = jsonEncode(ev.eventData);
-          var eventDataMap = jsonDecode(encodedData) as Map;
-          var message = IterableInAppMessage.from(jsonEncode(eventDataMap));
-          Function callback =
-              _listeners[EventListenerNames.inAppHandler] as Function;
-          var response = callback(message);
-          setInAppShowResponse(response);
-          break;
-        case EventListenerNames.urlHandler:
-          dynamic encodedData = jsonEncode(ev.eventData);
-          Map eventDataMap = jsonDecode(encodedData) as Map;
-          String url = eventDataMap["url"];
-          IterableActionContext context =
-              IterableActionContext.from(eventDataMap["context"]);
-          Function callback =
-              _listeners[EventListenerNames.urlHandler] as Function;
-          Iterable.wakeApp();
-          if (Platform.isAndroid) {
-            // Give enough time for Activity to wake up.
-            timer = Timer(const Duration(seconds: 1),
-                () => callUrlHandler(url, context, callback));
-          } else {
-            callUrlHandler(url, context, callback);
-          }
-          break;
-        // case EventListenerNames.consentExpired:
-        //   Function callback = _listeners[EventListenerNames.consentExpired] =
-        //       _listeners[EventListenerNames.consentExpired] as Function;
-        //   callback();
-        //   break;
-        // case EventListenerNames.visitor:
-        //   var encodedData = json.encode(ev.eventData);
-        //   var eventDataMap = json.decode(encodedData);
-        //   eventDataMap as Map;
-        //   eventDataMap.remove(EventListenerNames.name);
-        //   Function callback = _listeners[EventListenerNames.visitor] =
-        //       _listeners[EventListenerNames.visitor] as Function;
-        //   callback(eventDataMap);
-        //   break;
-        default:
-          break;
-      }
-    });
-  }
+  // static Future<bool> handleAppLink(String link) async {
+  //   return Iterable.handleAppLink(link);
+  // }
 }

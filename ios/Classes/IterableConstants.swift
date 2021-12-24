@@ -1,5 +1,7 @@
 import Foundation
 
+typealias ITBEmitter = IterableConstants.Events
+
 public enum IterableConstants {
     static let sdkVersion = "flutterSDKVersion"
 
@@ -26,10 +28,11 @@ public enum IterableConstants {
     }
 
     // Events
-    enum Events: String, CaseIterable  {
-        case emitterName = "emitterName";
-        case inAppDelegate = "IterableFlutter.InAppDelegateEvent"
-        case urlDelegate = "IterableFlutter.UrlDelegateEvent"
-        case authDelegate = "IterableFlutter.AuthDelegateEvent"
+    public enum Events {
+        static let emitterName = "emitterName"
+        static let inAppDelegate = "IterableFlutter.InAppDelegateEvent"
+        static let customActionDelegate = "IterableFlutter.CustomActionDelegateEvent"
+        static let urlDelegate = "IterableFlutter.UrlDelegateEvent"
+        static let authDelegate = "IterableFlutter.AuthDelegateEvent"
     }
 }
