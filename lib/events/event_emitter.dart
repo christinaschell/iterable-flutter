@@ -4,7 +4,7 @@
 
 // ignore_for_file: unnecessary_this
 
-// From: https://pub.dev/packages/eventify - Updated for sound safety https://dart.dev/null-safety
+// From: https://pub.dev/packages/eventify - Updated for sound null safety https://dart.dev/null-safety
 import 'event.dart';
 import 'listener.dart';
 

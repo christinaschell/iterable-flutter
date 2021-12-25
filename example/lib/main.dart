@@ -2,12 +2,22 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
 import 'dart:async';
-import 'package:iterable/iterable.dart';
+import 'package:iterable/iterable_api.dart';
 import 'package:iterable/common.dart';
+import 'package:iterable/inapp/inapp_common.dart';
 import 'package:iterable_example/deeplink_handler.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'env.dart';
 import 'iterable_button.dart';
+
+// TODO: fix multiple alerts showing
+// TODO: TEST! TEST! TEST!
+// TODO: Restyle and set up more realistic Sample app - https://www.raywenderlich.com/19457817-flutter-navigator-2-0-and-deep-links
+// TODO: Style this better
+
+// Deeplinking
+// https://medium.com/flutter-community/deep-links-and-flutter-applications-how-to-handle-them-properly-8c9865af9283
+// https://stackoverflow.com/questions/50887790/flutter-changing-the-current-tab-in-tab-bar-view-using-a-button
 
 void main() {
   runApp(const MaterialApp(home: MyApp()));
@@ -27,6 +37,16 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     _tabController = TabController(vsync: this, length: 3);
+
+    config.inAppHandler = inAppHandler;
+    config.urlHandler = urlHandler;
+    config.customActionHandler = customActionHandler;
+    // config.authHandler = authHandler; - uncomment to test JWT
+
+    // Initialize Iterable
+    IterableAPI.initialize(IterableEnv.apiKey, config).then((success) => {
+          if (success) {debugPrint('Iterable Initialized')}
+        });
     super.initState();
   }
 
@@ -36,71 +56,56 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-  ListView _identityListView() {
-    // Set up custom handling for in-app messages
-    IterableInAppShowResponse inAppHandler(IterableInAppMessage message) {
-      if (message.customPayload?["shouldSkip"] == true) {
-        return IterableInAppShowResponse.skip;
-      } else {
-        return IterableInAppShowResponse.show;
-      }
+  // Set up custom handling for in-app messages
+  IterableInAppShowResponse inAppHandler(IterableInAppMessage message) {
+    if (message.customPayload?["shouldSkip"] == true) {
+      return IterableInAppShowResponse.skip;
+    } else {
+      return IterableInAppShowResponse.show;
     }
+  }
 
-    // Set up custom action handling for the action:// url scheme
-    bool customActionHandler(
-        IterableAction action, IterableActionContext actionContext) {
-      if (action.type.contains("discount?promo=")) {
-        String promoCode = action.type.split("?promo=")[1];
-        // TODO: fix multiple alerts showing
-        _showAlert(promoCode);
-        return true;
-      }
-      return false;
-    }
-
-//https://medium.com/flutter-community/deep-links-and-flutter-applications-how-to-handle-them-properly-8c9865af9283
-// https://stackoverflow.com/questions/50887790/flutter-changing-the-current-tab-in-tab-bar-view-using-a-button
-    // Set up custom routing for deeplinks
-    bool urlHandler(String url, IterableActionContext context) {
-      debugPrint("🔥urlHandler url: $url");
-      int tabIndex = DeeplinkHandler.handle(url).toInt();
-      _tabController.animateTo(tabIndex);
+  // Set up custom action handling for the action:// url scheme
+  bool customActionHandler(
+      IterableAction action, IterableActionContext actionContext) {
+    if (action.type.contains("discount?promo=")) {
+      String promoCode = action.type.split("?promo=")[1];
+      _showAlert(promoCode);
       return true;
     }
+    return false;
+  }
 
-    // Set up an auth handler that will pass along a JWT token retrieved from your service
-    // Not needed if JWT is not enabled for your api key
-    Future<String> authHandler() async {
-      // This is simulating async retrieval of a JWT token from your server.
-      // An actual implementation would take a JWT secret, email/userId, and
-      // return the token. For even more security, requre a username/password
-      // for your JWT retrieval endpoint.
-      //
-      // For testing, simply replace IterableEnv.jwtToken
-      // with an actual JWT Token created manually
-      return await Future.delayed(
-              const Duration(milliseconds: 100), () => IterableEnv.jwtToken)
-          .catchError((err) {
-        debugPrint("Error retrieving JWT from server: $err");
-      });
-    }
+  // Set up custom routing for deeplinks
+  bool urlHandler(String url, IterableActionContext context) {
+    debugPrint("🔥urlHandler url: $url");
+    int tabIndex = DeeplinkHandler.handle(url).toInt();
+    _tabController.animateTo(tabIndex);
+    return true;
+  }
 
-    config.inAppHandler = inAppHandler;
-    config.urlHandler = urlHandler;
-    config.customActionHandler = customActionHandler;
-    // config.authHandler = authHandler;
+  // Set up an auth handler that will pass along a JWT token retrieved from your service
+  // Not needed if JWT is not enabled for your api key
+  Future<String> authHandler() async {
+    // This is simulating async retrieval of a JWT token from your server.
+    // An actual implementation would take a JWT secret, email/userId, and
+    // return the token. For even more security, requre a username/password
+    // for your JWT retrieval endpoint.
+    //
+    // For testing, simply replace IterableEnv.jwtToken
+    // with an actual JWT Token that was created manually
+    return await Future.delayed(
+            const Duration(milliseconds: 100), () => IterableEnv.jwtToken)
+        .catchError((err) {
+      debugPrint("Error retrieving JWT from server: $err");
+    });
+  }
 
-    // Initialize Iterable
-    IterableAPI.initialize(IterableEnv.apiKey, config).then((success) => {
-          if (success) {debugPrint('Iterable Initialized')}
-        });
-
+  ListView _identityListView() {
     return ListView(
       scrollDirection: Axis.vertical,
       children: <Widget>[
         const Padding(padding: EdgeInsets.all(3.5)),
-        // Identity Tab
-        // Set either email OR userId for a user
         IterableButton(
             title: 'Set Email',
             onPressed: () =>
@@ -108,29 +113,24 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         IterableButton(
             title: 'Set User Id',
             onPressed: () => IterableAPI.setUserId("flutterUserId2")),
-        // 2. [DONE] Get user email
         IterableButton(
             title: 'Get Email',
             onPressed: () => IterableAPI.getEmail()
                 .then((email) => debugPrint('Current Email: $email'))),
-        // 3. [DONE] Get user id
         IterableButton(
             title: 'Get User Id',
             onPressed: () => IterableAPI.getUserId()
                 .then((userId) => debugPrint('Current User Id: $userId'))),
-        // 4. [DONE] Update user email
         IterableButton(
             title: 'Update Email',
             onPressed: () => IterableAPI.updateEmail(
                     "christina.schell+flutter8@iterable.com")
                 .then((response) => debugPrint(jsonEncode(response)))),
-        // 5. [DONE] Update user data
         IterableButton(
             title: 'Update User Data',
             onPressed: () =>
                 IterableAPI.updateUser({'newFlutterKey': 'def123'}, false)
                     .then((response) => debugPrint(jsonEncode(response)))),
-        // 14. [DONE] Update user subscriptions (Settings tab)
         IterableButton(
             title: 'Update User Subscriptions',
             onPressed: () => IterableAPI.updateSubscriptions(
@@ -138,7 +138,6 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                 subscribedMessageTypeIds: [12345],
                 unsubscribedChannelIds: [67890],
                 unsubscribedMessageTypeIds: [78901])),
-        // [DONE] Set email and user id
         IterableButton(
             title: 'Set Email and User Id',
             onPressed: () => {
@@ -153,12 +152,6 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                   IterableAPI.setEmail(null),
                   IterableAPI.setUserId(null),
                 }),
-        // 8. Push
-        //  - [DONE] Foundation
-        //  - [DONE] Rich Push
-        // 9. InApp
-        //  - [DONE] Foundation
-        // 15. [DONE] Update user methods to return Future<string> of full error/success payloads
       ],
     );
   }
@@ -166,9 +159,6 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   ListView _commerceListView() {
     return ListView(scrollDirection: Axis.vertical, children: <Widget>[
       const Padding(padding: EdgeInsets.all(3.5)),
-      // E-Commerce Tab
-      // 6. [DONE] Use the Commerce API to track updates to the cart (add/remove/update qty)
-      // 7. [DONE] Use the Commerce API to track a purchase
       IterableButton(
           title: 'Add To Cart',
           onPressed: () => IterableAPI.updateCart(_addToCartItems())),
@@ -181,35 +171,32 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
       IterableButton(
           title: 'Track Purchase',
           onPressed: () => IterableAPI.trackPurchase(
-              19.98, _purchaseItems(), {'rewards': 100}))
+              19.98, _purchaseItems(), {'rewards': 100})),
+      IterableButton(
+          title: 'Get Attribution Info',
+          onPressed: () => IterableAPI.getAttributionInfo()
+              .then((attrInfo) => debugPrint(jsonEncode(attrInfo?.toJson())))),
+      IterableButton(
+          title: 'Set Attribution Info',
+          onPressed: () => IterableAPI.setAttributionInfo(
+              IterableAttributionInfo(
+                  123, 456, "0fc6657517c64014868ea2d15f23082b")))
     ]);
   }
 
   ListView _settingsListView() {
     return ListView(scrollDirection: Axis.vertical, children: <Widget>[
       const Padding(padding: EdgeInsets.all(3.5)),
-      // Other Tab
-      // 1. [DONE] Track a custom event
       IterableButton(
           title: 'Track Event',
           onPressed: () => IterableAPI.trackEvent(
               'Test Event From Flutter', {'eventDataField': 'abc123'})),
-      // 10. [DONE] Get last push payload
       IterableButton(
           title: 'Get Last Push Payload',
           onPressed: () => {
                 IterableAPI.getLastPushPayload().then(
                     (payload) => debugPrint('Last Push Payload: $payload'))
               }),
-      // 11. [DONE] Deeplinking
-      // 12. [DONE] Expose getMessages method
-      // [DONE - NEED TO TEST] Other methods that RN exposes (trackInApp, trackPushOpen, etc)
-      // 15. [DONE] Implement delegates/listeners
-      // [DONE] Implement JWT Authentication
-      // [DONE] Deeplink handle method
-      // 13. [MAYBE] Restyle and set up more realistic Sample app - https://www.raywenderlich.com/19457817-flutter-navigator-2-0-and-deep-links
-      // Reorganize files
-      //TEST! TEST! TEST!
       IterableButton(
           title: 'Get In App Messages',
           onPressed: () => {
@@ -332,7 +319,6 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         });
   }
 
-  // TODO: Style this better
   void _showAlert(String promoCode) {
     var alertStyle = AlertStyle(
       animationType: AnimationType.fromTop,

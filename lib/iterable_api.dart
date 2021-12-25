@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:iterable/inapp/inapp_manager.dart';
+import 'inapp/inapp_common.dart';
 import 'common.dart';
 import 'package:flutter/services.dart';
 import 'events/event_handler.dart';
@@ -102,7 +104,7 @@ class IterableAPI {
         .invokeMethod('setEmailAndUserId', {'email': email, 'userId': userId});
   }
 
-  /// Retrieves attribution info (campaignId, messageId etc.) for last push open or app link click from an email.
+  /// Retrieves the current attribution information (based on a recent deep link click)
   ///
   /// [Future<IterableAttributionInfo>]
   static Future<IterableAttributionInfo?> getAttributionInfo() async {
@@ -115,7 +117,7 @@ class IterableAPI {
     }
   }
 
-  /// Sets [attributionInfo] (campaignId, messageId etc.) for last push open or app link click from an email.
+  /// Manually sets the current attribution information so that it can later be used when tracking events
   static setAttributionInfo(IterableAttributionInfo attributionInfo) {
     _channel.invokeMethod(
         'setAttributionInfo', {'attributionInfo': attributionInfo.toJson()});

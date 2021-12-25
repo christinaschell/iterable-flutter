@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:iterable/iterable.dart';
+import 'package:iterable/iterable_api.dart';
 
 void main() {
   const MethodChannel channel = MethodChannel('iterable');
