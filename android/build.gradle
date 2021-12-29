@@ -24,6 +24,7 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
+version = "0.0.1"
 android {
     compileSdkVersion 30
 
@@ -41,10 +42,12 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 16
+        minSdkVersion 21
+        buildConfigField "String", "TAG", "\"Iterable-Flutter-$version\""
     }
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'com.iterable:iterableapi:3.4.0'
 }

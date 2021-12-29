@@ -10,10 +10,15 @@ import 'package:rflutter_alert/rflutter_alert.dart';
 import 'env.dart';
 import 'iterable_button.dart';
 
-// TODO: fix multiple alerts showing
-// TODO: TEST! TEST! TEST!
+// TODO: Add `allowedProtocols` to config - https://support.iterable.com/hc/en-us/articles/360035018152#_6-2-set-the-allowedprotocols-field
+// TODO: Add config.expiringAuthTokenRefreshPeriod to native
+// TODO: Unit tests
+//  - Flutter: https://stackoverflow.com/questions/52028969/testing-flutter-code-that-uses-a-plugin-and-platform-channel
+//  - Swift: https://csdcorp.com/blog/coding/flutter-plugin-ios-tests-in-swift/
+//  - Swift+Kotlin: https://github.com/flutter/flutter/wiki/Plugin-Tests
+// TODO: Docs + code comments
 // TODO: Restyle and set up more realistic Sample app - https://www.raywenderlich.com/19457817-flutter-navigator-2-0-and-deep-links
-// TODO: Style this better
+// TODO: Style the alert better
 
 // Deeplinking
 // https://medium.com/flutter-community/deep-links-and-flutter-applications-how-to-handle-them-properly-8c9865af9283
@@ -31,8 +36,11 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
-  final config = IterableConfig(inAppDisplayInterval: 1.0);
+  final config = IterableConfig(
+      inAppDisplayInterval: 1.0, logLevel: IterableLogLevel.info);
   late TabController _tabController;
+  bool inAppMsgAutoDisplayPaused = false;
+  String autoDisplayButtonText = "Pause";
 
   @override
   void initState() {
@@ -45,7 +53,11 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
 
     // Initialize Iterable
     IterableAPI.initialize(IterableEnv.apiKey, config).then((success) => {
-          if (success) {debugPrint('Iterable Initialized')}
+          if (success)
+            {
+              debugPrint('Iterable Initialized'),
+              IterableAPI.inAppManager.setAutoDisplayPaused(false)
+            }
         });
     super.initState();
   }
@@ -78,7 +90,6 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
 
   // Set up custom routing for deeplinks
   bool urlHandler(String url, IterableActionContext context) {
-    debugPrint("🔥urlHandler url: $url");
     int tabIndex = DeeplinkHandler.handle(url).toInt();
     _tabController.animateTo(tabIndex);
     return true;
@@ -94,6 +105,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
     //
     // For testing, simply replace IterableEnv.jwtToken
     // with an actual JWT Token that was created manually
+    // and make sure to use the JWT api key in Iterable.initialize
     return await Future.delayed(
             const Duration(milliseconds: 100), () => IterableEnv.jwtToken)
         .catchError((err) {
@@ -108,11 +120,11 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         const Padding(padding: EdgeInsets.all(3.5)),
         IterableButton(
             title: 'Set Email',
-            onPressed: () =>
-                IterableAPI.setEmail("christina.schell+flutter@iterable.com")),
+            onPressed: () => IterableAPI.setEmail(
+                "christina.schell+flutter.android@iterable.com")),
         IterableButton(
             title: 'Set User Id',
-            onPressed: () => IterableAPI.setUserId("flutterUserId2")),
+            onPressed: () => IterableAPI.setUserId("flutterUserIdAndroid")),
         IterableButton(
             title: 'Get Email',
             onPressed: () => IterableAPI.getEmail()
@@ -124,7 +136,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         IterableButton(
             title: 'Update Email',
             onPressed: () => IterableAPI.updateEmail(
-                    "christina.schell+flutter8@iterable.com")
+                    "christina.schell+flutter.droid5@iterable.com")
                 .then((response) => debugPrint(jsonEncode(response)))),
         IterableButton(
             title: 'Update User Data',
@@ -142,8 +154,8 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
             title: 'Set Email and User Id',
             onPressed: () => {
                   IterableAPI.setEmailAndUserId(
-                          "christina.schell+flutter6@iterable.com",
-                          "flutterUserId3")
+                          "christina.schell+flutter.android7@iterable.com",
+                          "flutterUserIdAndroid3")
                       .then((response) => debugPrint(jsonEncode(response)))
                 }),
         IterableButton(
@@ -261,8 +273,80 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                     })
               }),
       IterableButton(
-          title: 'Set Auto Display Paused',
-          onPressed: () => IterableAPI.inAppManager.setAutoDisplayPaused(false))
+          title: "$autoDisplayButtonText Auto Display of InApps",
+          onPressed: () => {
+                inAppMsgAutoDisplayPaused = !inAppMsgAutoDisplayPaused,
+                setState(() {
+                  inAppMsgAutoDisplayPaused == true
+                      ? autoDisplayButtonText = 'Unpause'
+                      : autoDisplayButtonText = 'Pause';
+                }),
+                IterableAPI.inAppManager
+                    .setAutoDisplayPaused(inAppMsgAutoDisplayPaused)
+              }),
+      IterableButton(
+          title: 'Track Push Open',
+          onPressed: () => IterableAPI.trackPushOpenWithCampaignId(
+              123, 456, "abc123", false, {'hello': 'world'})),
+      IterableButton(
+          title: 'Track InApp Open',
+          onPressed: () => {
+                IterableAPI.inAppManager.getMessages().then((messages) => {
+                      if (messages.isEmpty)
+                        {_logInAppError("Track InApp Open")}
+                      else
+                        {
+                          IterableAPI.trackInAppOpen(
+                              messages.first, IterableInAppLocation.inApp)
+                        }
+                    })
+              }),
+      IterableButton(
+          title: 'Track InApp Click',
+          onPressed: () => {
+                IterableAPI.inAppManager.getMessages().then((messages) => {
+                      if (messages.isEmpty)
+                        {_logInAppError("Track InApp Click")}
+                      else
+                        {
+                          IterableAPI.trackInAppClick(
+                              messages.first,
+                              IterableInAppLocation.inApp,
+                              "https://schellyapps.com/deeplinkurl")
+                        }
+                    })
+              }),
+      IterableButton(
+          title: 'Track InApp Close',
+          onPressed: () => {
+                IterableAPI.inAppManager.getMessages().then((messages) => {
+                      if (messages.isEmpty)
+                        {_logInAppError("Track InApp Close")}
+                      else
+                        {
+                          IterableAPI.trackInAppClose(
+                              messages.first,
+                              IterableInAppLocation.inApp,
+                              IterableInAppCloseSource.link,
+                              "https:/schellyapps.com/deeplink-close")
+                        }
+                    })
+              }),
+      IterableButton(
+          title: 'InApp Consume',
+          onPressed: () => {
+                IterableAPI.inAppManager.getMessages().then((messages) => {
+                      if (messages.isEmpty)
+                        {_logInAppError("InApp Consume")}
+                      else
+                        {
+                          IterableAPI.inAppConsume(
+                              messages.first,
+                              IterableInAppLocation.inbox,
+                              IterableInAppDeleteSource.inboxSwipe)
+                        }
+                    })
+              })
     ]);
   }
 

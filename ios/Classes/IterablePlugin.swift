@@ -154,6 +154,25 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
     })
   }
 
+  func setEmailAndUserId(call: FlutterMethodCall, result: @escaping FlutterResult) {
+    //ITBInfo()
+    guard let arguments = call.arguments as? [String: Any],
+     let email = arguments["email"] as? String,
+     let userId = arguments["userId"] as? String else {
+       return
+     }
+    IterableAPI.updateEmail(email, onSuccess: { _ in
+      IterableAPI.updateUser(["userId": userId], mergeNestedObjects: true, onSuccess: { data in 
+        IterableAPI.userId = userId
+        result(data?.stringified)
+      }, onFailure: { [weak self] reason, data in 
+        result(self?.failure(from: data, fallback: "Failed to set email/id. Reason: \(reason ?? "")"))
+      })
+    }, onFailure: { [weak self] reason, data in
+        result(self?.failure(from: data, fallback: "Failed to set email/id. Reason: \(reason ?? "")"))
+    })
+  }
+
   func updateSubscriptions(call: FlutterMethodCall) {
     //ITBInfo()
     guard let arguments = call.arguments as? [String: Any] else {
@@ -175,25 +194,6 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
                                       templateId: templateId)
   }
 
-  func setEmailAndUserId(call: FlutterMethodCall, result: @escaping FlutterResult) {
-    //ITBInfo()
-    guard let arguments = call.arguments as? [String: Any],
-     let email = arguments["email"] as? String,
-     let userId = arguments["userId"] as? String else {
-       return
-     }
-    IterableAPI.updateEmail(email, onSuccess: { _ in
-      IterableAPI.updateUser(["userId": userId], mergeNestedObjects: true, onSuccess: { data in 
-        IterableAPI.userId = userId
-        result(data?.stringified)
-      }, onFailure: { [weak self] reason, data in 
-        result(self?.failure(from: data, fallback: "Failed to set email/id. Reason: \(reason ?? "")"))
-      })
-    }, onFailure: { [weak self] reason, data in
-        result(self?.failure(from: data, fallback: "Failed to set email/id. Reason: \(reason ?? "")"))
-    })
-  }
-
   func getAttributionInfo(result: @escaping FlutterResult) {
     //ITBInfo()
     result(IterableAPI.attributionInfo?.encoded)
@@ -212,12 +212,11 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
 
   func trackEvent(call: FlutterMethodCall) {
     guard let arguments = call.arguments as? [String: Any],
-     let name = arguments["eventName"] as? String,
-      let dataFields = arguments["dataFields"] as? [AnyHashable: Any] else {
+     let name = arguments["eventName"] as? String else {
       return
     }
 
-    //ITBInfo()
+    let dataFields = arguments["dataFields"] as? [AnyHashable: Any]
         
     IterableAPI.track(event: name, dataFields: dataFields)
   }
@@ -253,7 +252,7 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
   func trackPushOpen(call: FlutterMethodCall) {
     guard let arguments = call.arguments as? [String: Any],
     let campaignId = arguments["campaignId"] as? NSNumber,
-     let templateId = arguments["teamplateId"] as? NSNumber,
+     let templateId = arguments["templateId"] as? NSNumber,
      let messageId = arguments["messageId"] as? String,
      let appAlreadyRunning = arguments["appAlreadyRunning"] as? Bool else {
       return
@@ -432,6 +431,7 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
        inAppHandlerSemaphore.signal()
     }
 
+    // Might not need - only for android
     func handleAppLink(call: FlutterMethodCall, result: @escaping FlutterResult) {
       guard let arguments = call.arguments as? [String: Any],
       let appLink = arguments["link"] as? String, 

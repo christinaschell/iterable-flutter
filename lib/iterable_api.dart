@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'events/event_handler.dart';
 
 class IterableAPI {
-  static const String pluginName = 'IterableFlutterBeta';
   static const String pluginVersion = '0.0.1';
   static const MethodChannel _channel = MethodChannel('iterable');
   static var inAppManager = IterableInAppManager();
@@ -35,7 +34,6 @@ class IterableAPI {
         'logLevel': config.logLevel
       },
       'version': pluginVersion,
-      'pluginName': pluginName,
       'apiKey': apiKey
     });
     if (inAppHandlerPresent) {
@@ -197,14 +195,14 @@ class IterableAPI {
       IterableInAppMessage message, IterableInAppLocation location) {
     // toJson for these
     _channel.invokeMethod('trackInAppOpen',
-        {'message': message.messageId, 'location': location.toInt()});
+        {'messageId': message.messageId, 'location': location.toInt()});
   }
 
   /// Tracks an in-app click event manually
   static trackInAppClick(IterableInAppMessage message,
       IterableInAppLocation location, String clickedUrl) {
     _channel.invokeMethod('trackInAppClick', {
-      'message': message.toJson(),
+      'messageId': message.messageId,
       'location': location.toInt(),
       'clickedUrl': clickedUrl
     });
@@ -217,7 +215,7 @@ class IterableAPI {
       IterableInAppCloseSource source,
       String? clickedUrl) {
     _channel.invokeMethod('trackInAppClose', {
-      'message': message.toJson(),
+      'messageId': message.messageId,
       'location': location.toInt(),
       'source': source.toInt(),
       'clickedUrl': clickedUrl
@@ -228,7 +226,7 @@ class IterableAPI {
   static inAppConsume(IterableInAppMessage message,
       IterableInAppLocation location, IterableInAppDeleteSource source) {
     _channel.invokeMethod('inAppConsume', {
-      'message': message.toJson(),
+      'messageId': message.messageId,
       'location': location.toInt(),
       'source': source.toInt(),
     });
