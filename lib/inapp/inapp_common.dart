@@ -132,11 +132,11 @@ class IterableInAppContent {
 
 class IterableHtmlInAppContent implements IterableInAppContent {
   @override
-  late IterableInAppContentType type;
+  IterableInAppContentType type = IterableInAppContentType.from(0);
   late IterableEdgeInsets edgeInsets;
   late String html;
 
-  IterableHtmlInAppContent(this.type, this.edgeInsets, this.html);
+  IterableHtmlInAppContent(this.edgeInsets, this.html);
 
   // Debug purposes only
   dynamic toJson() {
@@ -149,9 +149,7 @@ class IterableHtmlInAppContent implements IterableInAppContent {
 
   static IterableHtmlInAppContent from(Map<String, dynamic> dictionary) {
     var encodedEdgeInsets = jsonEncode(dictionary["edgeInsets"]);
-    return IterableHtmlInAppContent(
-        IterableInAppContentType.from(dictionary["type"] as int),
-        IterableEdgeInsets.from(encodedEdgeInsets),
+    return IterableHtmlInAppContent(IterableEdgeInsets.from(encodedEdgeInsets),
         dictionary["html"] as String);
   }
 }
@@ -161,11 +159,7 @@ class IterableInboxMetadata {
   String? subtitle;
   String? icon;
 
-  IterableInboxMetadata(String? title, String? subtitle, String? icon) {
-    this.title = title;
-    this.subtitle = subtitle;
-    this.icon = icon;
-  }
+  IterableInboxMetadata(this.title, this.subtitle, this.icon);
 
   static IterableInboxMetadata from(Map<String, Object> dictionary) {
     return IterableInboxMetadata(dictionary["title"] as String,
@@ -187,25 +181,12 @@ class IterableInAppMessage {
   IterableInboxMetadata? inboxMetadata;
   Map<String, Object>? customPayload;
 
-  IterableInAppMessage(
-      String messageId,
-      int campaignId,
-      IterableHtmlInAppContent content,
-      IterableInAppTrigger trigger,
-      bool saveToInbox,
-      bool read,
-      double priorityLevel,
+  IterableInAppMessage(this.messageId, this.campaignId, this.content,
+      this.trigger, this.saveToInbox, this.read, this.priorityLevel,
       {DateTime? createdAt,
       DateTime? expiresAt,
       IterableInboxMetadata? inboxMetadata,
       Map<String, Object>? customPayload}) {
-    this.messageId = messageId;
-    this.campaignId = campaignId;
-    this.content = content;
-    this.trigger = trigger;
-    this.saveToInbox = saveToInbox;
-    this.read = read;
-    this.priorityLevel = priorityLevel;
     this.createdAt = createdAt;
     this.expiresAt = expiresAt;
     this.inboxMetadata = inboxMetadata;

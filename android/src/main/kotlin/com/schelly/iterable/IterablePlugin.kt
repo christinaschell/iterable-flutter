@@ -1,41 +1,47 @@
 package com.schelly.iterable
 
-import androidx.annotation.NonNull
-import android.app.Application
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.net.Uri;
-import android.content.Intent
-
+import androidx.annotation.NonNull
+import com.iterable.iterableapi.*
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-
-import com.iterable.iterableapi.*
-import com.iterable.iterableapi.FlutterInternalIterable
-
 import org.json.JSONObject
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.collections.*
-//import kotlin.reflect.*
+
 
 /** IterablePlugin */
-class IterablePlugin: FlutterPlugin, MethodCallHandler, IterableUrlHandler, IterableCustomActionHandler, IterableInAppHandler, IterableAuthHandler {
-  /// The MethodChannel that will the communication between Flutter and native Android
-  ///
-  /// This local reference serves to register the plugin with the Flutter Engine and unregister it
-  /// when the Flutter Engine is detached from the Activity
+class IterablePlugin: FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware, IterableUrlHandler, IterableCustomActionHandler, IterableInAppHandler, IterableAuthHandler {
+
   private lateinit var channel : MethodChannel
-  private var context: Context? = null
-  private var inAppResponse = IterableInAppHandler.InAppResponse.SHOW;
+  private lateinit var context: Context
+  private lateinit var activity: Activity
+
+  private var inAppResponse = IterableInAppHandler.InAppResponse.SHOW
+  private var inAppShowResponseLatch: CountDownLatch? = null
+
+  private var passedAuthToken: String? = null
+  private var authHandlerCallbackLatch: CountDownLatch? = null
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-    channel = MethodChannel(flutterPluginBinding.binaryMessenger, "iterable")
-    channel.setMethodCallHandler(this)
+    channel = MethodChannel(flutterPluginBinding.getBinaryMessenger(), "iterable")
+    channel.setMethodCallHandler(this);
     context = flutterPluginBinding.applicationContext
+  }
+
+  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+    channel.setMethodCallHandler(null)
   }
 
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
@@ -55,15 +61,24 @@ class IterablePlugin: FlutterPlugin, MethodCallHandler, IterableUrlHandler, Iter
       "updateCart" -> updateCart(call)
       "trackPurchase" -> trackPurchase(call)
       "getLastPushPayload" -> getLastPushPayload(result)
+      "getInAppMessages" -> getInAppMessages(result)
       "disableDeviceForCurrentUser" -> disableDeviceForCurrentUser()
+      "trackPushOpen" -> trackPushOpen(call)
+      "trackInAppOpen" -> trackInAppOpen(call)
+      "trackInAppClick" -> trackInAppClick(call)
+      "trackInAppClose" -> trackInAppClose(call)
+      "inAppConsume" -> inAppConsume(call)
+      "showMessage" -> showMessage(call, result)
+      "setReadForMessage" -> setReadForMessage(call)
+      "removeMessage" -> removeMessage(call)
+      "getHtmlContentForMessage" -> getHtmlInAppContent(call, result)
+      "setInAppShowResponse" -> setInAppShowResponse(call)
       "wakeApp" -> wakeApp()
       "setAutoDisplayPaused" -> setAutoDisplayPaused(call)
+      "handleAppLink" -> handleAppLink(call, result)
+      "setAuthToken" -> setAuthToken(call)
       else -> result.onMain().notImplemented()
   }
-  }
-
-  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-    channel.setMethodCallHandler(null)
   }
 
   private fun initialize(call: MethodCall, result: Result) {
@@ -71,31 +86,31 @@ class IterablePlugin: FlutterPlugin, MethodCallHandler, IterableUrlHandler, Iter
     val configMap = args[CONFIG] as Map<*, *>
     val apiKey = args[API_KEY] as String
     val version = args[VERSION] as String
-    
-    toIterableConfig(configMap)?.let { config ->
+
+    toIterableConfig(configMap).let { config ->
 
       val urlHandlerPresent = configMap[URL_HANDLER_PRESENT] as? Boolean ?: false
       val customActionHandlerPresent = configMap[CUSTOM_ACTION_HANDLER_PRESENT] as? Boolean ?: false
       val inAppHandlerPresent = configMap[INAPP_HANDLER_PRESENT] as? Boolean ?: false
       val authHandlerPresent = configMap[AUTH_HANDLER_PRESENT] as? Boolean ?: false
-  
+
       if (urlHandlerPresent) {
         config.setUrlHandler(this)
       }
-  
+
       if (customActionHandlerPresent) {
         config.setCustomActionHandler(this)
       }
-  
+
       if (inAppHandlerPresent) {
         config.setInAppHandler(this)
       }
-  
+
       if (authHandlerPresent) {
         config.setAuthHandler(this)
       }
 
-      context?.let { context -> 
+      context.let { context ->
         Handler(Looper.getMainLooper()).post {
           IterableApi.initialize(context, apiKey, config.build())
           Log.d(BuildConfig.TAG, "Instance Initialized")
@@ -103,12 +118,6 @@ class IterablePlugin: FlutterPlugin, MethodCallHandler, IterableUrlHandler, Iter
           result.onMain().success(true)
         }
       }
-    //   events.subscribe(EmitterListeners(channel))
-    } ?: run {
-        Log.e(BuildConfig.TAG, "Failed to initialize instance.")
-        Handler(Looper.getMainLooper()).post {
-            result.onMain().success(false) // todo: should this use .error() instead?
-        }
     }
   }
 
@@ -122,11 +131,11 @@ class IterablePlugin: FlutterPlugin, MethodCallHandler, IterableUrlHandler, Iter
   }
 
   private fun updateEmail(call: MethodCall, result: Result) {
-    val email = call.argument<String>("email").let { it } ?: return 
+    val email = call.argument<String>("email") ?: return 
     
-    IterableApi.getInstance().updateEmail(email, IterableHelper.SuccessHandler { data ->
+    IterableApi.getInstance().updateEmail(email, {
       result.onMain().success("updateEmail to $email was successful.")
-      }, IterableHelper.FailureHandler { reason, data ->
+      }, { reason, _ ->
         result.onMain().success("updateEmail to $email failed. Reason: $reason") // todo: should this use .error() instead?
     })
   }
@@ -141,7 +150,7 @@ class IterablePlugin: FlutterPlugin, MethodCallHandler, IterableUrlHandler, Iter
   }
 
   private fun updateUser(call: MethodCall, result: Result) {
-    val dataFields = call.argument<Map<*, *>>("dataFields").let { it } ?: return
+    val dataFields = call.argument<Map<*, *>>("dataFields") ?: return
     val mergeNestedObjects = call.argument<Boolean>("mergeNestedObjects") ?: true
     
     IterableApi.getInstance().updateUser(JSONObject(dataFields), mergeNestedObjects)
@@ -149,14 +158,14 @@ class IterablePlugin: FlutterPlugin, MethodCallHandler, IterableUrlHandler, Iter
   }
 
   private fun setEmailAndUserId(call: MethodCall, result: Result) {
-    val email = call.argument<String>("email").let { it } ?: return
-    val userId = call.argument<String>("userId").let { it } ?: return 
+    val email = call.argument<String>("email") ?: return
+    val userId = call.argument<String>("userId") ?: return 
     
-    IterableApi.getInstance().updateEmail(email, IterableHelper.SuccessHandler {  
+    IterableApi.getInstance().updateEmail(email, {
       IterableApi.getInstance().updateUser(JSONObject().put("userId", userId), true)
         IterableApi.getInstance().setUserId(userId)
         result.onMain().success("setEmailAndUserId successful")
-    }, IterableHelper.FailureHandler { reason, data -> 
+    }, { reason, _ ->
       result.onMain().success("setEmailAndUserId to $email and $userId failed. Reason: $reason")
     })
   }
@@ -184,46 +193,44 @@ class IterablePlugin: FlutterPlugin, MethodCallHandler, IterableUrlHandler, Iter
   }
 
   private fun setAttributionInfo(call: MethodCall) {
-    val attrInfo = call.argument<Map<*,*>>("attributionInfo").let { it } ?: return
+    val attrInfo = call.argument<Map<*,*>>("attributionInfo") ?: return
     val attrInfoJSON = JSONObject(attrInfo)
-    val attributionInfo = IterableAttributionInfo.fromJSONObject(attrInfoJSON).let { it } ?: return
+    val attributionInfo: IterableAttributionInfo = IterableAttributionInfo.fromJSONObject(attrInfoJSON) ?: return
 
-    FlutterInternalIterable.setAttributionInfo(attributionInfo!!)
+    FlutterInternalIterable.setAttributionInfo(attributionInfo)
   }
 
   private fun trackEvent(call: MethodCall) {
-    val eventName = call.argument<String>("eventName").let { it } ?: return
+    val eventName = call.argument<String>("eventName") ?: return
     val dataFields = call.argument<Map<*, *>>("dataFields")
-    
-    eventName?.let { name ->
-      IterableApi.getInstance().track(eventName, JSONObject(dataFields))
-    }
+
+    IterableApi.getInstance().track(eventName, JSONObject(dataFields))
   }
   
   private fun updateCart(call: MethodCall) {
-    val items = call.argument<List<Map<*,*>>>("items").let { it } ?: return
-    val commerceItems = items.map { item -> commerceItemFromMap(item) }.filter { x: CommerceItem? -> x != null }
+    val items = call.argument<List<Map<*,*>>>("items") ?: return
+    val commerceItems = items.mapNotNull { item -> commerceItemFromMap(item) }
 
     IterableApi.getInstance().updateCart(commerceItems)
   }
 
   private fun trackPurchase(call: MethodCall) {
-    val total = call.argument<Double>("total").let { it } ?: return
-    val items = call.argument<List<Map<*,*>>>("items").let { it } ?: return
+    val total = call.argument<Double>("total") ?: return
+    val items = call.argument<List<Map<*,*>>>("items") ?: return
     val dataFields = call.argument<Map<*, *>>("dataFields")
 
-    val commerceItems = items.map { item -> commerceItemFromMap(item) }.filter { x: CommerceItem? -> x != null }
+    val commerceItems = items.mapNotNull { item -> commerceItemFromMap(item) }
 
     IterableApi.getInstance().trackPurchase(total, commerceItems, JSONObject(dataFields))
   }
 
   private fun getLastPushPayload(result: Result) {
     val payloadData = IterableApi.getInstance().getPayloadData()
-    var payloadMap = HashMap<String, Any?>()
+    val payloadMap = HashMap<String, Any?>()
 
     payloadData?.let { data -> 
-      data.keySet()?.forEach { key -> 
-        payloadMap.put(key, data.get(key))
+      data.keySet()?.forEach { key ->
+        payloadMap[key] = data.get(key)
       }
     }
 
@@ -234,132 +241,216 @@ class IterablePlugin: FlutterPlugin, MethodCallHandler, IterableUrlHandler, Iter
     IterableApi.getInstance().disablePush()
   }
 
-  private fun trackPushOpen(call: MethodCall) {}
+  private fun trackPushOpen(call: MethodCall) {
+    val campaignId = call.argument<Int>("campaignId") ?: return
+    val templateId = call.argument<Int>("templateId") ?: return
+    val messageId = call.argument<String>("messageId") ?: return
+    val dataFields = call.argument<Map<*, *>>("dataFields")
 
-  private fun trackInAppOpen(call: MethodCall) {}
+    FlutterInternalIterable.trackPushOpenWithCampaignId(campaignId, templateId, messageId, JSONObject(dataFields))
+  }
 
-  private fun trackInAppClick(call: MethodCall) {}
+  private fun trackInAppOpen(call: MethodCall) {
+    val messageId = call.argument<String>("messageId") ?: return
+    IterableApi.getInstance().trackInAppOpen(messageId)
+  }
 
-  private fun trackInAppClose(call: MethodCall) {}
+  private fun trackInAppClick(call: MethodCall) {
+    val messageId = call.argument<String>("messageId") ?: return
+    val clickedUrl = call.argument<String>("clickedUrl") ?: return
+    IterableApi.getInstance().trackInAppClick(messageId, clickedUrl)
+  }
 
-  private fun inAppConsume(call: MethodCall) {}
+  private fun trackInAppClose(call: MethodCall) {
+    val messageId = call.argument<String>("messageId") ?: return
+    val clickedUrl = call.argument<String>("clickedUrl") ?: return
+    val source = call.argument<Int>("source") ?: return
+    val location = call.argument<Int>("location") ?: return
 
-  private fun getInAppMessages(result: Result) {}
+    val closeAction = getIterableInAppCloseSourceFromInteger(source) ?: IterableInAppCloseAction.OTHER
+    val inAppLocation = getIterableInAppLocationFromInteger(location) ?: IterableInAppLocation.IN_APP
 
-  private fun showMessage(call: MethodCall, result: Result) {}
+    FlutterInternalIterable.trackInAppClose(messageId, clickedUrl, closeAction, inAppLocation)
+  }
 
-  private fun setReadForMessage(call: MethodCall) {}
+  private fun inAppConsume(call: MethodCall) {
+    val messageId = call.argument<String>("messageId") ?: return
+    val message = FlutterInternalIterable.getMessageById(messageId) ?: return
+    val source = call.argument<Int>("source")
+    val location = call.argument<Int>("location")
 
-  private fun removeMessage(call: MethodCall) {}
+    val deleteActionType = getIterableDeleteActionTypeFromInteger(source)
+    val inAppLocation = getIterableInAppLocationFromInteger(location)
 
-  private fun getHtmlInAppContent(call: MethodCall, result: Result) {}
+    IterableApi.getInstance().inAppConsume(message, deleteActionType, inAppLocation)
+  }
+
+  private fun getInAppMessages(result: Result) {
+    val inAppMessages = IterableApi.getInstance().getInAppManager().getMessages()
+    val inAppMessagesMapArray = inAppMessages.map { message -> 
+      inAppMessageToMap(message)
+    }
+    result.onMain().success(inAppMessagesMapArray)
+  }
+
+  private fun showMessage(call: MethodCall, result: Result) {
+    val messageId = call.argument<String>("messageId") ?: return
+    val consume = call.argument<Boolean>("consume") ?: true
+    val message = FlutterInternalIterable.getMessageById(messageId) ?: return
+
+    IterableApi.getInstance().inAppManager.showMessage(
+      message, consume
+    ) { url -> result.onMain().success(url.toString()) }
+  }
+
+  private fun setReadForMessage(call: MethodCall) {
+    val messageId = call.argument<String>("messageId") ?: return
+    val read = call.argument<Boolean>("read") ?: true
+    val message = FlutterInternalIterable.getMessageById(messageId) ?: return
+
+    IterableApi.getInstance().inAppManager.setRead(message, read);
+  }
+
+  private fun removeMessage(call: MethodCall) {
+    val messageId = call.argument<String>("messageId") ?: return
+    val source = call.argument<Int>("source") ?: return
+    val location = call.argument<Int>("location") ?: return
+    val message = FlutterInternalIterable.getMessageById(messageId) ?: return
+
+    val deleteActionType = getIterableDeleteActionTypeFromInteger(source) ?: IterableInAppDeleteActionType.OTHER
+    val inAppLocation = getIterableInAppLocationFromInteger(location) ?: IterableInAppLocation.IN_APP
+    
+    IterableApi.getInstance().inAppManager.removeMessage(message, deleteActionType, inAppLocation);
+  }
+
+  private fun getHtmlInAppContent(call: MethodCall, result: Result) {
+    val messageId = call.argument<String>("messageId") ?: return
+    val message = FlutterInternalIterable.getMessageById(messageId) ?: return
+    val encodedHtmlContent = htmlContentToJsonString(message.content)
+    result.onMain().success(encodedHtmlContent)
+  }
 
   private fun setAutoDisplayPaused(call: MethodCall) {
     val paused = call.argument<Boolean>("paused") ?: false
     Handler(Looper.getMainLooper()).post {
-      IterableApi.getInstance().getInAppManager().setAutoDisplayPaused(paused);
+      IterableApi.getInstance().inAppManager.setAutoDisplayPaused(paused);
     }
   }
 
-  private fun setInAppShowResponse(call: MethodCall) {}
+  private fun setInAppShowResponse(call: MethodCall) {
+    val showResponse = call.argument<Int>("showResponse") ?: return
+    inAppResponse = getInAppResponse(showResponse) ?: IterableInAppHandler.InAppResponse.SHOW
+    inAppShowResponseLatch?.countDown()
+  }
 
-  private fun handleAppLink(call: MethodCall, result: Result) {}
+  private fun handleAppLink(call: MethodCall, result: Result) {
+    val uri = call.argument<String>("uri") ?: return
+    result.onMain().success(IterableApi.getInstance().handleAppLink(uri))
+  }
 
-  private fun setAuthToken(call: MethodCall) {}
+  private fun setAuthToken(call: MethodCall) {
+    val token = call.argument<String>("token") ?: return
+    passedAuthToken = token
+    authHandlerCallbackLatch?.countDown()
+  }
 
   private fun wakeApp() {
-    val launcherIntent = getMainActivityIntent().let { it } ?: return 
-    val pkgManager = context?.getPackageManager().let { it } ?: return 
-    launcherIntent!!.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+    val launcherIntent = getMainActivityIntent() ?: return 
+    val pkgManager = context.packageManager ?: return
+    launcherIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
     
-    if (launcherIntent!!.resolveActivity(pkgManager) != null) {
-        context?.startActivity(launcherIntent!!);
+    if (launcherIntent.resolveActivity(pkgManager) != null) {
+        context.startActivity(launcherIntent);
     }
   }
 
   private fun getMainActivityIntent(): Intent? {
-    val appContext = context?.getApplicationContext().let { it } ?: return null
-    val pkgManager = context?.getPackageManager().let { it } ?: return null
-    var intent = pkgManager.getLaunchIntentForPackage(appContext.getPackageName()).let { it } ?: return null
-      
-    intent = Intent(Intent.ACTION_MAIN, null);
-    intent.addCategory(Intent.CATEGORY_LAUNCHER);
-    intent.setPackage(appContext.getPackageName());
+
+    val intent = Intent(Intent.ACTION_MAIN, null)
+    intent.addCategory(Intent.CATEGORY_LAUNCHER)
+    intent.setPackage(context.packageName)
   
-    return intent;
+    return intent
   }
 
   override
-  public fun handleIterableURL(uri: Uri, actionContext: IterableActionContext): Boolean {
-      IterableLogger.printInfo();
-
-      // val actionContextJson = Serialization.actionContextToJson(actionContext);
-      // var eventDataJson = JSONObject();
-
-      // try {
-      //     eventDataJson.put("url", uri.toString());
-      //     eventDataJson.put("context", actionContextJson);
-      //     val eventData = Serialization.convertJsonToMap(eventDataJson);
-      //     //sendEvent(EventName.handleUrlCalled.name(), eventData);
-      // } catch (JSONException e) {
-      //     IterableLogger.e(TAG, e.getLocalizedMessage());
-      // }
-      return true
-  }
-
-  override
-  public fun handleIterableCustomAction(action: IterableAction, actionContext: IterableActionContext): Boolean {
-      IterableLogger.printInfo();
-      // val actionJson = Serialization.actionToJson(action);
-      // val actionContextJson = Serialization.actionContextToJson(actionContext);
-      // var eventDataJson = JSONObject();
-      // try {
-      //     eventDataJson.put("action", actionJson);
-      //     eventDataJson.put("context", actionContextJson);
-      //     val eventData = Serialization.convertJsonToMap(eventDataJson);
-      //     //sendEvent(EventName.handleCustomActionCalled.name(), eventData);
-      // } catch (JSONException e) {
-      //     IterableLogger.e(TAG, "Failed handling custom action");
-      // }
-      // The Android SDK will not bring the app into focus is this is `true`. It still respects the `openApp` bool flag.
-      return false;
-  }
-
-  override
-  public fun onNewInApp(message: IterableInAppMessage): IterableInAppHandler.InAppResponse {
+  fun handleIterableURL(uri: Uri, actionContext: IterableActionContext): Boolean {
     IterableLogger.printInfo();
 
-    // JSONObject messageJson = RNIterableInternal.getInAppMessageJson(message);
+    val eventData = mutableMapOf("url" to uri.toString(), "context" to actionContextToMap(actionContext))
+    eventData[EMITTER_NAME] = URL_DELEGATE
+    invokeOnMain(channel, "callListener", eventData)
 
-    // try {
-    //     WritableMap eventData = Serialization.convertJsonToMap(messageJson);
-    //     jsCallBackLatch = new CountDownLatch(1);
-    //     sendEvent(EventName.handleInAppCalled.name(), eventData);
-    //     jsCallBackLatch.await(2, TimeUnit.SECONDS);
-    //     jsCallBackLatch = null;
-    //     return inAppResponse;
-    // } catch (InterruptedException | JSONException e) {
-    //     IterableLogger.e(TAG, "new in-app module failed");
-    //     return InAppResponse.SHOW;
-    // }
-    return IterableInAppHandler.InAppResponse.SHOW
+    return true
   }
 
   override
-  public fun onAuthTokenRequested(): String? {
-      IterableLogger.printInfo();
+  fun handleIterableCustomAction(action: IterableAction, actionContext: IterableActionContext): Boolean {
+    IterableLogger.printInfo();
 
-      // try {
-      //     authHandlerCallbackLatch = new CountDownLatch(1);
-      //     sendEvent(EventName.handleAuthCalled.name(), null);
-      //     authHandlerCallbackLatch.await(30, TimeUnit.SECONDS);
-      //     authHandlerCallbackLatch = null;
-      //     return passedAuthToken;
-      // } catch (InterruptedException e) {
-      //     IterableLogger.e(TAG, "auth handler module failed");
-      //     return null;
-      // }
-      return "blah"
+    val eventData = customActionToMap(action, actionContext).toMutableMap()
+    eventData[EMITTER_NAME] = CUSTOM_ACTION_DELEGATE
+    invokeOnMain(channel, "callListener", eventData)
+
+    // The Android SDK will not bring the app into focus is this is `true`. It still respects the `openApp` bool flag.
+    return false;
+  }
+
+  override
+  fun onNewInApp(message: IterableInAppMessage): IterableInAppHandler.InAppResponse {
+    IterableLogger.printInfo();
+
+    val messageJson = FlutterInternalIterable.getInAppMessageJson(message)
+    val eventData = messageJson.toFriendlyMap()
+
+    eventData[EMITTER_NAME] = INAPP_DELEGATE
+    invokeOnMain(channel, "callListener", eventData)
+
+    inAppShowResponseLatch = CountDownLatch(1)
+    inAppShowResponseLatch?.await(2, TimeUnit.SECONDS)
+    inAppShowResponseLatch = null
+    return inAppResponse
+
+  }
+
+  override
+  fun onAuthTokenRequested(): String? {
+    IterableLogger.printInfo();
+
+    authHandlerCallbackLatch = CountDownLatch(1)
+    invokeOnMain(channel, "callListener", mapOf(EMITTER_NAME to AUTH_DELEGATE))
+
+    authHandlerCallbackLatch?.await(30, TimeUnit.SECONDS)
+    authHandlerCallbackLatch = null
+    return passedAuthToken
+
+  }
+
+  override
+  fun onDetachedFromActivity() {
+    TODO("Not yet implemented")
+  }
+
+  override
+  fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+    activity = binding.activity
+  }
+
+  override
+  fun onAttachedToActivity(binding: ActivityPluginBinding) {
+    activity = binding.activity
+  }
+
+  override fun onDetachedFromActivityForConfigChanges() {
+    TODO("Not yet implemented")
+  }
+
+  companion object {
+    fun invokeOnMain(methodChannel: MethodChannel, listener: String, data: Any?) {
+      Handler(Looper.getMainLooper()).post {
+        methodChannel.invokeMethod(listener, data)
+      }
+    }
   }
 
 }

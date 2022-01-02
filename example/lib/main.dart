@@ -397,10 +397,8 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
 
   void _logInAppMessages(List<IterableInAppMessage> messages) {
     debugPrint('========= In-App Messages =========');
-    messages.asMap().forEach((index, message) => {
-          debugPrint('message #${index + 1}:'),
-          developer.log(jsonEncode((message.toJson())))
-        });
+    messages.asMap().forEach(
+        (index, message) => {developer.log(jsonEncode((message.toJson())))});
   }
 
   void _showAlert(String promoCode) {
