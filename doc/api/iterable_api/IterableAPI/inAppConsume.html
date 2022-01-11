@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the inAppConsume method from the IterableAPI class, for the Dart programming language.">
+  <title>inAppConsume method - IterableAPI class - iterable_api library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+
+  
+</head>
+
+
+<body data-base-href="../../"
+      data-using-base-href="false">
+
+<div id="overlay-under-drawer"></div>
+
+<header id="title">
+  <button id="sidenav-left-toggle" type="button">&nbsp;</button>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">iterable</a></li>
+    <li><a href="../../iterable_api/iterable_api-library.html">iterable_api</a></li>
+    <li><a href="../../iterable_api/IterableAPI-class.html">IterableAPI</a></li>
+    <li class="self-crumb">inAppConsume method</li>
+  </ol>
+  <div class="self-name">inAppConsume</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+
+<main>
+
+
+  <div id="dartdoc-main-content" class="main-content">
+      <div>
+<h1><span class="kind-method">inAppConsume</span> method 
+    <a href="https://dart.dev/null-safety" class="feature feature-null-safety" title="Supports the null safety language feature.">Null safety</a>
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+
+<span class="returntype">dynamic</span>
+<span class="name ">inAppConsume</span>(<wbr><ol class="parameter-list"><li><span class="parameter" id="inAppConsume-param-message"><span class="type-annotation"><a href="../../inapp_inapp_common/IterableInAppMessage-class.html">IterableInAppMessage</a></span> <span class="parameter-name">message</span>, </span></li>
+<li><span class="parameter" id="inAppConsume-param-location"><span class="type-annotation"><a href="../../inapp_inapp_common/IterableInAppLocation-class.html">IterableInAppLocation</a></span> <span class="parameter-name">location</span>, </span></li>
+<li><span class="parameter" id="inAppConsume-param-source"><span class="type-annotation"><a href="../../inapp_inapp_common/IterableInAppDeleteSource-class.html">IterableInAppDeleteSource</a></span> <span class="parameter-name">source</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Consumes an in-app message from the queue</p>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">static inAppConsume(IterableInAppMessage message,
+    IterableInAppLocation location, IterableInAppDeleteSource source) {
+  _channel.invokeMethod(&#39;inAppConsume&#39;, {
+    &#39;messageId&#39;: message.messageId,
+    &#39;location&#39;: location.toInt(),
+    &#39;source&#39;: source.toInt(),
+  });
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+  <li><a href="../../index.html">iterable</a></li>
+  <li><a href="../../iterable_api/iterable_api-library.html">iterable_api</a></li>
+  <li><a href="../../iterable_api/IterableAPI-class.html">IterableAPI</a></li>
+  <li class="self-crumb">inAppConsume method</li>
+</ol>
+
+
+    <h5>IterableAPI class</h5>
+    <ol>
+
+    <li class="section-title"><a href="../../iterable_api/IterableAPI-class.html#constructors">Constructors</a></li>
+    <li><a href="../../iterable_api/IterableAPI/IterableAPI.html">IterableAPI</a></li>
+
+
+    <li class="section-title inherited">
+      <a href="../../iterable_api/IterableAPI-class.html#instance-properties">Properties</a>
+    </li>
+    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/hashCode.html">hashCode</a></li>
+    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></li>
+
+    <li class="section-title inherited"><a href="../../iterable_api/IterableAPI-class.html#instance-methods">Methods</a></li>
+    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></li>
+    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">toString</a></li>
+
+    <li class="section-title inherited"><a href="../../iterable_api/IterableAPI-class.html#operators">Operators</a></li>
+    <li class="inherited"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></li>
+
+
+    <li class="section-title"><a href="../../iterable_api/IterableAPI-class.html#static-properties">Static properties</a></li>
+    <li><a href="../../iterable_api/IterableAPI/events.html">events</a></li>
+    <li><a href="../../iterable_api/IterableAPI/inAppManager.html">inAppManager</a></li>
+
+    <li class="section-title"><a href="../../iterable_api/IterableAPI-class.html#static-methods">Static methods</a></li>
+    <li><a href="../../iterable_api/IterableAPI/disableDeviceForCurrentUser.html">disableDeviceForCurrentUser</a></li>
+    <li><a href="../../iterable_api/IterableAPI/getAttributionInfo.html">getAttributionInfo</a></li>
+    <li><a href="../../iterable_api/IterableAPI/getEmail.html">getEmail</a></li>
+    <li><a href="../../iterable_api/IterableAPI/getLastPushPayload.html">getLastPushPayload</a></li>
+    <li><a href="../../iterable_api/IterableAPI/getUserId.html">getUserId</a></li>
+    <li><a href="../../iterable_api/IterableAPI/inAppConsume.html">inAppConsume</a></li>
+    <li><a href="../../iterable_api/IterableAPI/initialize.html">initialize</a></li>
+    <li><a href="../../iterable_api/IterableAPI/setAttributionInfo.html">setAttributionInfo</a></li>
+    <li><a href="../../iterable_api/IterableAPI/setEmail.html">setEmail</a></li>
+    <li><a href="../../iterable_api/IterableAPI/setEmailAndUserId.html">setEmailAndUserId</a></li>
+    <li><a href="../../iterable_api/IterableAPI/setUserId.html">setUserId</a></li>
+    <li><a href="../../iterable_api/IterableAPI/trackEvent.html">trackEvent</a></li>
+    <li><a href="../../iterable_api/IterableAPI/trackInAppClick.html">trackInAppClick</a></li>
+    <li><a href="../../iterable_api/IterableAPI/trackInAppClose.html">trackInAppClose</a></li>
+    <li><a href="../../iterable_api/IterableAPI/trackInAppOpen.html">trackInAppOpen</a></li>
+    <li><a href="../../iterable_api/IterableAPI/trackPurchase.html">trackPurchase</a></li>
+    <li><a href="../../iterable_api/IterableAPI/trackPushOpenWithCampaignId.html">trackPushOpenWithCampaignId</a></li>
+    <li><a href="../../iterable_api/IterableAPI/updateCart.html">updateCart</a></li>
+    <li><a href="../../iterable_api/IterableAPI/updateEmail.html">updateEmail</a></li>
+    <li><a href="../../iterable_api/IterableAPI/updateSubscriptions.html">updateSubscriptions</a></li>
+    <li><a href="../../iterable_api/IterableAPI/updateUser.html">updateUser</a></li>
+
+    <li class="section-title"><a href="../../iterable_api/IterableAPI-class.html#constants">Constants</a></li>
+    <li><a href="../../iterable_api/IterableAPI/pluginVersion-constant.html">pluginVersion</a></li>
+</ol>
+
+  </div><!--/.sidebar-offcanvas-->
+
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+
+</main>
+
+<footer>
+  <span class="no-break">
+    iterable
+      0.0.1
+  </span>
+
+  
+</footer>
+
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/script.js?v1"></script>
+
+
+
+</body>
+
+</html>
+
