@@ -13,21 +13,17 @@ public extension IterableConfig {
             config.pushIntegrationName = pushIntegrationName
         }
         
-        if let autoPushRegistration = dictionary[.autoPushRegistration] as? Bool {
-            config.autoPushRegistration = autoPushRegistration
-        }
-        
-        if let inAppDisplayInterval = dictionary[.inAppDisplayInterval] as? Double {
-            config.inAppDisplayInterval = inAppDisplayInterval
-        }
-
-        if let expiringAuthTokenRefreshPeriod = dictionary[.expiringAuthTokenRefreshPeriod] as? Double {
-            config.expiringAuthTokenRefreshPeriod = expiringAuthTokenRefreshPeriod
-        }
-        
         if let logLevelNumber = dictionary[.logLevel] as? NSNumber {
             config.logDelegate = createLogDelegate(logLevelNumber: logLevelNumber)
         }
+
+        if let allowedProtocols = dictionary[.allowedProtocols] as? [String] {
+            config.allowedProtocols = allowedProtocols
+        }
+        
+        config.autoPushRegistration = dictionary[.autoPushRegistration] as? Bool ?? true
+        config.inAppDisplayInterval = dictionary[.inAppDisplayInterval] as? Double ?? 30.0
+        config.expiringAuthTokenRefreshPeriod = dictionary[.expiringAuthTokenRefreshPeriod] as? Double ?? 60.0
         
         return config
     }

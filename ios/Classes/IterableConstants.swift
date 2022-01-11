@@ -11,12 +11,12 @@ public enum IterableConstants {
         case apiEndPointOverride
         case config
         case version
-        //case remoteNotificationsEnabled
         case expiringAuthTokenRefreshPeriod
         case inAppDisplayInterval
         case autoPushRegistration
         case pushIntegrationName
         case logLevel
+        case allowedProtocols
     }
 
     // Delegates

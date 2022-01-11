@@ -12,6 +12,8 @@ const val PUSH_INTEGRATION_NAME = "pushIntegrationName"
 const val AUTO_PUSH_REGISTRATION = "autoPushRegistration"
 const val INAPP_DISPLAY_INTERVAL = "inAppDisplayInterval"
 const val LOG_LEVEL = "logLevel"
+const val ALLOWED_PROTOCOLS = "allowedProtocols"
+const val AUTH_TOKEN_REFRESH = "expiringAuthTokenRefreshPeriod"
 
 const val URL_HANDLER_PRESENT = "urlHandlerPresent"
 const val CUSTOM_ACTION_HANDLER_PRESENT = "customActionHandlerPresent"

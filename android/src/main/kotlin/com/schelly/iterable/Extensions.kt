@@ -16,14 +16,21 @@ fun toIterableConfig(configMap: Map<*, *>): IterableConfig.Builder {
     val pushIntegrationName = configMap[PUSH_INTEGRATION_NAME] as? String
     val autoPushRegistration = configMap[AUTO_PUSH_REGISTRATION] as? Boolean ?: true
     val inAppDisplayInterval = configMap[INAPP_DISPLAY_INTERVAL] as? Double ?: 30.0
+    val expiringAuthTokenRefreshPeriod = configMap[AUTH_TOKEN_REFRESH] as? Double ?: 60.0
     val logLevel = configMap[LOG_LEVEL] as? Int
+    val allowedProtocols = configMap[ALLOWED_PROTOCOLS] as? List<String>
 
     if (!pushIntegrationName.isNullOrBlank()) {
         configBuilder.setPushIntegrationName(pushIntegrationName)
     }
 
+    allowedProtocols?.let {
+        configBuilder.setAllowedProtocols(it.toTypedArray());
+    }
+
     configBuilder.setAutoPushRegistration(autoPushRegistration)
     configBuilder.setInAppDisplayInterval(inAppDisplayInterval)
+    configBuilder.setExpiringAuthTokenRefreshPeriod(expiringAuthTokenRefreshPeriod.toLong())
 
     when (logLevel) {
         1 -> configBuilder.setLogLevel(Log.DEBUG)
@@ -90,8 +97,6 @@ fun commerceItemFromMap(itemMap: Map<*,*>): CommerceItem? {
     val categories = itemMap["categories"] as? List<String>
     val dataFields = itemMap["dataFields"] as? MutableMap<*, *>
     
-    Log.d(BuildConfig.TAG, "categories: $categories")
-
     return CommerceItem(id,
                         name,
                         price,
@@ -125,10 +130,10 @@ fun actionContextToMap(actionContext: IterableActionContext): Map<String, Any> {
     var actionContextMap = mutableMapOf<String, Any>()
 
     actionContext.action.let { action ->
-        actionContextMap["action"] = action
+        actionContextMap["action"] = actionToMap(action)
     }
     actionContext.source.let { source ->
-        actionContextMap["source"] = source
+        actionContextMap["source"] = source.ordinal
     }
 
     return actionContextMap
@@ -154,7 +159,7 @@ fun htmlContentToJsonString(content: IterableInAppMessage.Content): String {
     return Gson().toJson(contentMap)
 }
 
-private fun messageContentToMap(content: IterableInAppMessage.Content): Map<*,*> {
+fun messageContentToMap(content: IterableInAppMessage.Content): Map<*,*> {
     val messageContent = HashMap<String, Any>()
 
     messageContent["edgeInsets"] = edgeInsetsToMap(content.padding)

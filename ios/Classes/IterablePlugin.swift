@@ -17,71 +17,74 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    if call.method == "initialize" {
-      initialize(call: call, result: result)
-    } else if call.method == "setEmail" {
-      setEmail(call: call)
-    } else if call.method == "getEmail" {
-      getEmail(result: result)
-    } else if call.method == "updateEmail" {
-      updateEmail(call: call, result: result)
-    } else if call.method == "setUserId" {
-      setUserId(call: call)
-    } else if call.method == "getUserId" {
-      getUserId(result: result)
-    } else if call.method == "updateUser" {
-      updateUser(call: call, result: result)
-    } else if call.method == "updateSubscriptions" {
-      updateSubscriptions(call: call)
-    } else if call.method == "setEmailAndUserId" {
-      setEmailAndUserId(call: call, result: result)
-    } else if call.method == "getAttributionInfo" {
-      getAttributionInfo(result: result)
-    } else if call.method == "setAttributionInfo" {
-      setAttributionInfo(call: call)
-    } else if call.method == "trackEvent" {
-      trackEvent(call: call)
-    } else if call.method == "updateCart" {
-      updateCart(call: call)
-    } else if call.method == "trackPurchase" {
-      trackPurchase(call: call)
-    } else if call.method == "getLastPushPayload" {
-      getLastPushPayload(result: result)
-    } else if call.method == "disableDeviceForCurrentUser" {
-      disableDeviceForCurrentUser()
-    } else if call.method == "trackPushOpen" {
-      trackPushOpen(call: call)
-    } else if call.method == "trackInAppOpen" {
-      trackInAppOpen(call: call)
-    } else if call.method == "trackInAppClick" {
-      trackInAppClick(call: call)
-    } else if call.method == "trackInAppClose" {
-      trackInAppClose(call: call)
-    } else if call.method == "inAppConsume" {
-      inAppConsume(call: call)
-    } else if call.method == "getInAppMessages" {
-      getInAppMessages(result: result)
-    } else if call.method == "showMessage" {
-      showMessage(call: call, result: result)
-    } else if call.method == "removeMessage" {
-      removeMessage(call: call)
-    } else if call.method == "setReadForMessage" {
-      setReadForMessage(call: call)
-    } else if call.method == "getHtmlContentForMessage" {
-      getHtmlInAppContent(call: call, result: result)
-    } else if call.method == "handleAppLink" {
-      handleAppLink(call: call, result: result)
-    } else if call.method == "setAutoDisplayPaused" {
-      setAutoDisplayPaused(call: call)
-    } else if call.method == "setInAppShowResponse" {
-        setInAppShowResponse(call: call)
-    } else if call.method == "setAuthToken" {
-        setAuthToken(call: call)
-    } else if call.method == "wakeApp" {
-      // Android only
-    } else {
-      result(FlutterMethodNotImplemented);
-    }
+      switch call.method {
+      case "initialize":
+        initialize(call: call, result: result)
+      case "setEmail":
+        setEmail(call: call)
+      case "getEmail":
+        getEmail(result: result)
+      case "updateEmail":
+        updateEmail(call: call, result: result)
+      case "setUserId":
+        setUserId(call: call)
+      case "getUserId":
+        getUserId(result: result)
+      case "updateUser":
+        updateUser(call: call, result: result)
+      case "updateSubscriptions":
+        updateSubscriptions(call: call)
+      case "setEmailAndUserId":
+        setEmailAndUserId(call: call, result: result)
+      case "getAttributionInfo":
+        getAttributionInfo(result: result)
+      case "setAttributionInfo":
+        setAttributionInfo(call: call)
+      case "trackEvent":
+        trackEvent(call: call)
+      case "updateCart":
+        updateCart(call: call)
+      case "trackPurchase":
+        trackPurchase(call: call)
+      case "getLastPushPayload":
+        getLastPushPayload(result: result)
+      case "disableDeviceForCurrentUser":
+        disableDeviceForCurrentUser()
+      case "trackPushOpen":
+        trackPushOpen(call: call)
+      case "trackInAppOpen":
+        trackInAppOpen(call: call)
+      case "trackInAppClick":
+        trackInAppClick(call: call)
+      case "trackInAppClose":
+        trackInAppClose(call: call)
+      case "inAppConsume":
+        inAppConsume(call: call)
+      case "getInAppMessages":
+        getInAppMessages(result: result)
+      case "showMessage":
+        showMessage(call: call, result: result)
+      case "removeMessage":
+        removeMessage(call: call)
+      case "setReadForMessage":
+        setReadForMessage(call: call)
+      case "getHtmlContentForMessage":
+        getHtmlInAppContent(call: call, result: result)
+      case "handleAppLink":
+        handleAppLink(call: call, result: result)
+      case "setAutoDisplayPaused":
+        setAutoDisplayPaused(call: call)
+      case "setInAppShowResponse":
+          setInAppShowResponse(call: call)
+      case "setAuthToken":
+          setAuthToken(call: call)
+      case "wakeApp":
+          // Android Only
+          print("wakeApp")
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+   
   }
 
   func initialize(call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -105,17 +108,15 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
     guard let arguments = call.arguments as? [String: Any] else {
        return
      }
-    //ITBInfo()
+    
     IterableAPI.email = arguments["email"] as? String
   } 
 
   func getEmail(result: @escaping FlutterResult) {
-    //ITBInfo()
     result(IterableAPI.email ?? "")
   }
 
   func updateEmail(call: FlutterMethodCall, result: @escaping FlutterResult) {
-    //ITBInfo()
     guard let arguments = call.arguments as? [String: Any],
      let email = arguments["email"] as? String else {
        return
@@ -131,17 +132,14 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
     guard let arguments = call.arguments as? [String: Any] else {
        return
      }
-    //ITBInfo()
     IterableAPI.userId = arguments["userId"] as? String
   } 
 
   func getUserId(result: @escaping FlutterResult) {
-    //ITBInfo()
     result(IterableAPI.userId ?? "")
   }
 
   func updateUser(call: FlutterMethodCall, result: @escaping FlutterResult) {
-    //ITBInfo()
     guard let arguments = call.arguments as? [String: Any],
      let dataFields = arguments["dataFields"] as? [AnyHashable: Any] else {
        return
@@ -155,7 +153,6 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
   }
 
   func setEmailAndUserId(call: FlutterMethodCall, result: @escaping FlutterResult) {
-    //ITBInfo()
     guard let arguments = call.arguments as? [String: Any],
      let email = arguments["email"] as? String,
      let userId = arguments["userId"] as? String else {
@@ -174,7 +171,6 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
   }
 
   func updateSubscriptions(call: FlutterMethodCall) {
-    //ITBInfo()
     guard let arguments = call.arguments as? [String: Any] else {
        return
      }
@@ -195,7 +191,6 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
   }
 
   func getAttributionInfo(result: @escaping FlutterResult) {
-    //ITBInfo()
     result(IterableAPI.attributionInfo?.encoded)
   }
 
@@ -240,12 +235,10 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
   }
 
   func getLastPushPayload(result: @escaping FlutterResult) {
-    //ITBInfo()
-      result(IterableAPI.lastPushPayload as? [String: Any] ?? [String: Any]())
+    result(IterableAPI.lastPushPayload as? [String: Any] ?? [String: Any]())
   }
 
   func disableDeviceForCurrentUser() {
-    //ITBInfo()
     IterableAPI.disableDeviceForCurrentUser()
   }
 
@@ -333,7 +326,6 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
     
     // MARK: In-App Manager methods
     func getInAppMessages(result: @escaping FlutterResult) {
-        //ITBInfo()
         result(IterableAPI.inAppManager.getMessages().map { $0.dictionary })
     }
 
@@ -431,7 +423,6 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
        inAppHandlerSemaphore.signal()
     }
 
-    // Might not need - only for android
     func handleAppLink(call: FlutterMethodCall, result: @escaping FlutterResult) {
       guard let arguments = call.arguments as? [String: Any],
       let appLink = arguments["link"] as? String, 
@@ -465,8 +456,7 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
                             version: String,
                             apiEndPointOverride: String? = nil,
                             result: @escaping FlutterResult) {
-      //ITBInfo()
-        
+                              
       let iterableConfig = IterableConfig.from(configDict)
         if let urlHandlerPresent = configDict[.urlHandlerPresent] as? Bool, urlHandlerPresent == true {
            iterableConfig.urlDelegate = self

@@ -34,17 +34,19 @@ class IterablePlugin: FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
   private var passedAuthToken: String? = null
   private var authHandlerCallbackLatch: CountDownLatch? = null
 
-  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+  override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.getBinaryMessenger(), "iterable")
     channel.setMethodCallHandler(this);
     context = flutterPluginBinding.applicationContext
   }
 
-  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+  override
+  fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
   }
 
-  override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
+  override
+  fun onMethodCall(call: MethodCall, result: Result) {
     when (call.method) {
       "initialize" -> initialize(call, result)
       "setEmail" -> setEmail(call)
@@ -225,7 +227,7 @@ class IterablePlugin: FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
   }
 
   private fun getLastPushPayload(result: Result) {
-    val payloadData = IterableApi.getInstance().getPayloadData()
+    val payloadData = IterableApi.getInstance().payloadData
     val payloadMap = HashMap<String, Any?>()
 
     payloadData?.let { data -> 
@@ -400,8 +402,7 @@ class IterablePlugin: FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
   fun onNewInApp(message: IterableInAppMessage): IterableInAppHandler.InAppResponse {
     IterableLogger.printInfo();
 
-    val messageJson = FlutterInternalIterable.getInAppMessageJson(message)
-    val eventData = messageJson.toFriendlyMap()
+    val eventData = inAppMessageToMap(message).toMutableMap()
 
     eventData[EMITTER_NAME] = INAPP_DELEGATE
     invokeOnMain(channel, "callListener", eventData)
@@ -427,23 +428,21 @@ class IterablePlugin: FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
   }
 
   override
-  fun onDetachedFromActivity() {
-    TODO("Not yet implemented")
-  }
+  fun onDetachedFromActivity() { }
 
   override
   fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
     activity = binding.activity
+    IterableApi.setContext(activity)
   }
 
   override
   fun onAttachedToActivity(binding: ActivityPluginBinding) {
     activity = binding.activity
+    IterableApi.setContext(activity)
   }
 
-  override fun onDetachedFromActivityForConfigChanges() {
-    TODO("Not yet implemented")
-  }
+  override fun onDetachedFromActivityForConfigChanges() { }
 
   companion object {
     fun invokeOnMain(methodChannel: MethodChannel, listener: String, data: Any?) {

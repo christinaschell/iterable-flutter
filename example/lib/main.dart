@@ -10,19 +10,12 @@ import 'package:rflutter_alert/rflutter_alert.dart';
 import 'env.dart';
 import 'iterable_button.dart';
 
-// TODO: Add `allowedProtocols` to config - https://support.iterable.com/hc/en-us/articles/360035018152#_6-2-set-the-allowedprotocols-field
-// TODO: Add config.expiringAuthTokenRefreshPeriod to native
+// TODO: Docs + code comments
+
 // TODO: Unit tests
 //  - Flutter: https://stackoverflow.com/questions/52028969/testing-flutter-code-that-uses-a-plugin-and-platform-channel
 //  - Swift: https://csdcorp.com/blog/coding/flutter-plugin-ios-tests-in-swift/
 //  - Swift+Kotlin: https://github.com/flutter/flutter/wiki/Plugin-Tests
-// TODO: Docs + code comments
-// TODO: Restyle and set up more realistic Sample app - https://www.raywenderlich.com/19457817-flutter-navigator-2-0-and-deep-links
-// TODO: Style the alert better
-
-// Deeplinking
-// https://medium.com/flutter-community/deep-links-and-flutter-applications-how-to-handle-them-properly-8c9865af9283
-// https://stackoverflow.com/questions/50887790/flutter-changing-the-current-tab-in-tab-bar-view-using-a-button
 
 void main() {
   runApp(const MaterialApp(home: MyApp()));
@@ -49,7 +42,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
     config.inAppHandler = inAppHandler;
     config.urlHandler = urlHandler;
     config.customActionHandler = customActionHandler;
-    // config.authHandler = authHandler; - uncomment to test JWT
+    // config.authHandler = authHandler; // uncomment to test JWT
 
     // Initialize Iterable
     IterableAPI.initialize(IterableEnv.apiKey, config).then((success) => {

@@ -29,6 +29,7 @@ class IterableConfig {
   double? inAppDisplayInterval;
   double? expiringAuthTokenRefreshPeriod;
   int? logLevel;
+  List<String>? allowedProtocols;
   IterableInAppHandler? inAppHandler;
   IterableCustomActionHandler? customActionHandler;
   IterableUrlHandler? urlHandler;
@@ -41,17 +42,18 @@ class IterableConfig {
       double? inAppDisplayInterval,
       double? expiringAuthTokenRefreshPeriod,
       IterableLogLevel? logLevel,
+      List<String>? allowedProtocols,
       IterableInAppHandler? inAppHandler,
       IterableCustomActionHandler? customActionHandler,
       IterableUrlHandler? urlHandler,
       IterableAuthHandler? authHandler}) {
     this.remoteNotificationsEnabled = remoteNotificationsEnabled ?? true;
     this.pushIntegrationName = pushIntegrationName;
-    this.autoPushRegistration = autoPushRegistration ?? true;
-    this.inAppDisplayInterval = inAppDisplayInterval ?? 30.0;
-    this.expiringAuthTokenRefreshPeriod =
-        expiringAuthTokenRefreshPeriod ?? 60.0;
+    this.autoPushRegistration = autoPushRegistration;
+    this.inAppDisplayInterval = inAppDisplayInterval;
+    this.expiringAuthTokenRefreshPeriod = expiringAuthTokenRefreshPeriod;
     this.logLevel = logLevel?.toInt() ?? IterableLogLevel.info.toInt();
+    this.allowedProtocols = allowedProtocols;
     this.inAppHandler = inAppHandler;
     this.customActionHandler = customActionHandler;
     this.urlHandler = urlHandler;
