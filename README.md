@@ -693,17 +693,25 @@ IterableAPI.trackPurchase(19.98, items, {'rewards': 100});
 API:
 
 ```
-trackPushOpenWithCampaignId(int campaignId, int templateId, String messageId, bool appAlreadyRunning, Map<String, Object>? dataFields)
+trackPushOpenWithCampaignId(
+	int campaignId,
+	int templateId,
+	String messageId,
+	bool appAlreadyRunning,
+	Map<String, Object>? dataFields
+)
 ```
 
 Example:
 
 ```
-IterableAPI.trackPushOpenWithCampaignId(123456,
-										789012,
-										"gKWPW6mrNflnVnU7RbKwSau7uq09GZXc2x0rwCmla99kGJ",
-										false,
-										{'promo': 'abc123'});
+IterableAPI.trackPushOpenWithCampaignId(
+	123456,
+	789012,
+	"gKWPW6mrNflnVnU7RbKwSau7uq09GZXc2x0rwCmla99kGJ",
+	false,
+	{'promo': 'abc123'}
+);
 ```
 
 ## getLastPushPayload 
@@ -759,9 +767,11 @@ trackInAppClick(IterableInAppMessage message, IterableInAppLocation location, St
 Example:
 
 ```
-IterableAPI.trackInAppClick(message,
-							IterableInAppLocation.inApp,
-							"https://example.com/deeplinkurl");
+IterableAPI.trackInAppClick(
+	message,
+	IterableInAppLocation.inApp,
+	"https://example.com/deeplinkurl"
+);
 ```
 
 ## trackInAppClose 
@@ -769,19 +779,23 @@ IterableAPI.trackInAppClick(message,
 API:
 
 ```
-trackInAppClose(IterableInAppMessage message,
-				IterableInAppLocation location,
-				IterableInAppCloseSource source,
-				String? clickedUrl)
+trackInAppClose(
+	IterableInAppMessage message,
+	IterableInAppLocation location,
+	IterableInAppCloseSource source,
+	String? clickedUrl
+)
 ```
 
 Example:
 
 ```
-IterableAPI.trackInAppClose(message,
-							IterableInAppLocation.inApp,
-							IterableInAppCloseSource.link,
-							"https:/example.com/deeplink-close");
+IterableAPI.trackInAppClose(
+	message,
+	IterableInAppLocation.inApp,
+	IterableInAppCloseSource.link,
+	"https:/example.com/deeplink-close"
+);
 ``` 
 
 ## inAppConsume 
@@ -790,17 +804,21 @@ IterableAPI.trackInAppClose(message,
 API:
 
 ```
-inAppConsume(IterableInAppMessage message,
-			 IterableInAppLocation location,
-			 IterableInAppDeleteSource source)
+inAppConsume(
+	IterableInAppMessage message,
+	IterableInAppLocation location,
+	IterableInAppDeleteSource source
+)
 ```
 
 Example:
 
 ```
-IterableAPI.inAppConsume(message, 
-						 IterableInAppLocation.inbox,
-						 IterableInAppDeleteSource.inboxSwipe);
+IterableAPI.inAppConsume(
+	message, 
+	IterableInAppLocation.inbox,
+	IterableInAppDeleteSource.inboxSwipe
+);
 ``` 
 
 ## getMessages 
@@ -816,14 +834,14 @@ Example:
 ```
 IterableAPI
 	.inAppManager
-    .getMessages()
-	.then((messages) => {
-		messages
-			.asMap()
-			.forEach((index, message) => {
-            	developer.log(jsonEncode((message.toJson())));
-           });
-    });
+   		.getMessages()
+			.then((messages) => {
+				messages
+					.asMap()
+					.forEach((index, message) => {
+            			developer.log(jsonEncode((message.toJson())));
+           		});
+    		});
 ``` 
 
 ## getAttributionInfo 
@@ -877,17 +895,21 @@ IterableAPI.inAppManager.showMessage(message, true)
 API:
 
 ```
-removeMessage(IterableInAppMessage message,
-      		  IterableInAppLocation location,
-      		  IterableInAppDeleteSource source)
+removeMessage(
+	IterableInAppMessage message,
+	IterableInAppLocation location,
+	IterableInAppDeleteSource source
+)
 ```
 
 Example:
 
 ```
-IterableAPI.inAppManager.removeMessage(message,
-                              		   IterableInAppLocation.inApp,
-			                           IterableInAppDeleteSource.deleteButton)
+IterableAPI.inAppManager.removeMessage(
+	message,
+	IterableInAppLocation.inApp,
+	IterableInAppDeleteSource.deleteButton
+)
 ``` 
 
 ## setReadForMessage
