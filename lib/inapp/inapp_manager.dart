@@ -37,6 +37,7 @@ class IterableInAppManager {
   }
 
   /// Sets the read flag for an in app [message]
+  /// Only used for mobile inbox when available
   void setReadForMessage(IterableInAppMessage message, bool read) {
     _channel.invokeMethod(
         'setReadForMessage', {'messageId': message.messageId, 'read': read});

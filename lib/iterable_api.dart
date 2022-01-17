@@ -22,7 +22,6 @@ class IterableAPI {
 
     var initialized = await _channel.invokeMethod('initialize', {
       'config': {
-        'remoteNotificationsEnabled': config.remoteNotificationsEnabled,
         'pushIntegrationName': config.pushIntegrationName,
         'urlHandlerPresent': urlHandlerPresent,
         'customActionHandlerPresent': customActionHandlerPresent,
@@ -190,15 +189,14 @@ class IterableAPI {
     });
   }
 
-  /// Tracks an in-app open event manually
+  /// Tracks an in-app [message] open event manually
   static trackInAppOpen(
       IterableInAppMessage message, IterableInAppLocation location) {
-    // toJson for these
     _channel.invokeMethod('trackInAppOpen',
         {'messageId': message.messageId, 'location': location.toInt()});
   }
 
-  /// Tracks an in-app click event manually
+  /// Tracks an in-app [message] click event manually
   static trackInAppClick(IterableInAppMessage message,
       IterableInAppLocation location, String clickedUrl) {
     _channel.invokeMethod('trackInAppClick', {
@@ -208,7 +206,7 @@ class IterableAPI {
     });
   }
 
-  /// Tracks an in-app close event manually
+  /// Tracks an in-app [message] close event manually
   static trackInAppClose(
       IterableInAppMessage message,
       IterableInAppLocation location,
@@ -222,7 +220,7 @@ class IterableAPI {
     });
   }
 
-  /// Consumes an in-app message from the queue
+  /// Consumes an in-app [message] from the queue
   static inAppConsume(IterableInAppMessage message,
       IterableInAppLocation location, IterableInAppDeleteSource source) {
     _channel.invokeMethod('inAppConsume', {
@@ -231,8 +229,4 @@ class IterableAPI {
       'source': source.toInt(),
     });
   }
-
-  // static Future<bool> handleAppLink(String link) async {
-  //   return Iterable.handleAppLink(link);
-  // }
 }

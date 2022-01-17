@@ -10,13 +10,6 @@ import 'package:rflutter_alert/rflutter_alert.dart';
 import 'env.dart';
 import 'iterable_button.dart';
 
-// TODO: Docs + code comments
-
-// TODO: Unit tests
-//  - Flutter: https://stackoverflow.com/questions/52028969/testing-flutter-code-that-uses-a-plugin-and-platform-channel
-//  - Swift: https://csdcorp.com/blog/coding/flutter-plugin-ios-tests-in-swift/
-//  - Swift+Kotlin: https://github.com/flutter/flutter/wiki/Plugin-Tests
-
 void main() {
   runApp(const MaterialApp(home: MyApp()));
 }
@@ -92,8 +85,8 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   // Not needed if JWT is not enabled for your api key
   Future<String> authHandler() async {
     // This is simulating async retrieval of a JWT token from your server.
-    // An actual implementation would take a JWT secret, email/userId, and
-    // return the token. For even more security, requre a username/password
+    // An actual implementation would take an email or userId and
+    // return the token. For even more security, require a username/password
     // for your JWT retrieval endpoint.
     //
     // For testing, simply replace IterableEnv.jwtToken

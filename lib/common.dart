@@ -23,7 +23,6 @@ class Utilities {
 }
 
 class IterableConfig {
-  bool? remoteNotificationsEnabled;
   String? pushIntegrationName;
   bool? autoPushRegistration; // default true
   double? inAppDisplayInterval;
@@ -36,8 +35,7 @@ class IterableConfig {
   IterableAuthHandler? authHandler;
 
   IterableConfig(
-      {bool? remoteNotificationsEnabled,
-      String? pushIntegrationName,
+      {String? pushIntegrationName,
       bool? autoPushRegistration,
       double? inAppDisplayInterval,
       double? expiringAuthTokenRefreshPeriod,
@@ -47,7 +45,6 @@ class IterableConfig {
       IterableCustomActionHandler? customActionHandler,
       IterableUrlHandler? urlHandler,
       IterableAuthHandler? authHandler}) {
-    this.remoteNotificationsEnabled = remoteNotificationsEnabled ?? true;
     this.pushIntegrationName = pushIntegrationName;
     this.autoPushRegistration = autoPushRegistration;
     this.inAppDisplayInterval = inAppDisplayInterval;

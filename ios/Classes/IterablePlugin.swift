@@ -4,7 +4,6 @@ import IterableSDK
 
 public class SwiftIterablePlugin: NSObject, FlutterPlugin {
 
-  var iterable: IterableAPI?
   static var channel: FlutterMethodChannel?
 
   public static func register(with registrar: FlutterPluginRegistrar) {
@@ -95,6 +94,8 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
         // TODO log error
           return result(false)
       }
+
+      // Not available in Android - should we keep?
       let apiEndPointOverride = arguments[.apiEndPointOverride] as? String
       
       internalInitialize(withApiKey: apiKey,
@@ -456,7 +457,7 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
                             version: String,
                             apiEndPointOverride: String? = nil,
                             result: @escaping FlutterResult) {
-                              
+
       let iterableConfig = IterableConfig.from(configDict)
         if let urlHandlerPresent = configDict[.urlHandlerPresent] as? Bool, urlHandlerPresent == true {
            iterableConfig.urlDelegate = self
