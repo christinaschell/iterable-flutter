@@ -13,7 +13,6 @@ This SDK helps you integrate your Flutter apps with Iterable.
 * [API](#api)
 * [Usage](#usage)
 * [FAQ](#faq)
-* [Dartdoc](#dartdoc)
 * [Contributing](#contributing)
 * [License](#license)
 
@@ -107,7 +106,6 @@ Static methods available within the `Iterable` class.
 | [`trackInAppClick`](#trackInAppClick)     	| Track when a user clicks on a button or link within a message                                                             	|
 | [`trackInAppClose `](#trackInAppClose)  	| Track when an in-app message is closed                                                               	|
 | [`inAppConsume `](#inAppConsume)   	| Track when a message has been consumed. Deletes the in-app message from the server so it won't be returned anymore        	|
-| [`getInAppMessages`](#getInAppMessages)    	| Returns all of the in-app messages for the user 	|
 | [`getAttributionInfo `](#getAttributionInfo)    	| To get the current attribution information (based on a recent deep link click) 	|
 | [`setAttributionInfo `](#setAttributionInfo)    	| To manually set the current attribution information so that it can later be used when tracking events 	|
 
@@ -117,6 +115,7 @@ Static methods available on the `inAppManager` property within the `Iterable` cl
 
 | Method Name           	| Description                                                                                                               	|
 |-----------------------	|---------------------------------------------------------------------------------------------------------------------------	|
+| [`getInAppMessages`](#getInAppMessages)    	| Returns all of the in-app messages for the user 	|
 | [`showMessage`](#showMessage)     	| Shows an in-app message that had been skipped previously.                                                             	|
 | [`removeMessage`](#removeMessage)     	| Removes the specified message from the user's message queue                                                                                    	|
 | [`setReadForMessage`](#setReadForMessage)     	| Sets the `read` property for a given message. Used when maintaining a messaging inbox.	|
@@ -608,22 +607,24 @@ API:
 
 ```
 updateSubscriptions({
-						List<int>? emailListIds,
-  					 	List<int>? unsubscribedChannelIds,
-  						List<int>? unsubscribedMessageTypeIds,
-  						List<int>? subscribedMessageTypeIds,
-  						int? campaignId,
-  						int? templateId
-      				})
+	List<int>? emailListIds,
+	List<int>? unsubscribedChannelIds,
+	List<int>? unsubscribedMessageTypeIds,
+	List<int>? subscribedMessageTypeIds,
+	int? campaignId,
+	int? templateId
+})
 ```
 
 Example:
 
 ```
-IterableAPI.updateSubscriptions(emailListIds: [1234],
-                				subscribedMessageTypeIds: [12345],
-                				unsubscribedChannelIds: [67890],
-               					unsubscribedMessageTypeIds: [78901]);
+IterableAPI.updateSubscriptions(
+	emailListIds: [1234],
+	subscribedMessageTypeIds: [12345],
+	unsubscribedChannelIds: [67890],
+	unsubscribedMessageTypeIds: [78901]
+);
 ```
 
 ## trackEvent 
