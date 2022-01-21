@@ -106,11 +106,10 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         const Padding(padding: EdgeInsets.all(3.5)),
         IterableButton(
             title: 'Set Email',
-            onPressed: () => IterableAPI.setEmail(
-                "christina.schell+flutter.android@iterable.com")),
+            onPressed: () => IterableAPI.setEmail(IterableEnv.email)),
         IterableButton(
             title: 'Set User Id',
-            onPressed: () => IterableAPI.setUserId("flutterUserIdAndroid")),
+            onPressed: () => IterableAPI.setUserId("flutterUserId")),
         IterableButton(
             title: 'Get Email',
             onPressed: () => IterableAPI.getEmail()
@@ -121,8 +120,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                 .then((userId) => debugPrint('Current User Id: $userId'))),
         IterableButton(
             title: 'Update Email',
-            onPressed: () => IterableAPI.updateEmail(
-                    "christina.schell+flutter.droid5@iterable.com")
+            onPressed: () => IterableAPI.updateEmail(IterableEnv.email2)
                 .then((response) => debugPrint(jsonEncode(response)))),
         IterableButton(
             title: 'Update User Data',
@@ -140,8 +138,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
             title: 'Set Email and User Id',
             onPressed: () => {
                   IterableAPI.setEmailAndUserId(
-                          "christina.schell+flutter.android7@iterable.com",
-                          "flutterUserIdAndroid3")
+                          IterableEnv.email3, "flutterUserId10")
                       .then((response) => debugPrint(jsonEncode(response)))
                 }),
         IterableButton(
