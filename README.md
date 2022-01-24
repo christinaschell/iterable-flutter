@@ -44,14 +44,34 @@ Class level documentation was already created using [`dartdoc`](https://pub.dev/
 1. Install Flutter and set up your environment
 2. Download VS Code and install the Flutter plugin 
 3. Clone the repo
+4. Run `flutter pub get` in the root
 4. Within the `example/ios` folder, run `pod install`
 5. Open the root folder in VS Code
+6. Update the `env.example.dart` with: 
+	- Your own API Keys (JWT and regular)
+	- your JWT token that you manually create on `jwt.io`
+	- Three unique email addresses in order to test the update methods
+	- Update the name of the file to `env.dart` (example)
 6. Use the Terminal to `cd` into the `example/ios` directory
 7. Run `pod install && cd .. && flutter run`
 
 When you want to debug the native plugin code, you will want to open the native projects (in the `example/android` and `example/ios` folders in [Android Studio](https://docs.flutter.dev/development/tools/android-studio#run-app-with-breakpoints) and [Xcode](https://stackoverflow.com/a/66021238).
 
 When debugging the Flutter (Dart) side, debugging will be best done in [VS Code](https://docs.flutter.dev/development/tools/vs-code#run-app-with-breakpoints).
+
+#### Example env.dart
+
+```
+class IterableEnv {
+  static const apiKey = "YOUR_API_KEY";
+  static const jwtApiKey = "YOUR_JWT_API_KEY";
+  static const jwtToken =
+      "YOU_JWT_TOKEN";
+  static const email = "flutter.example@iterable.com";
+  static const email2 = "flutter.example2@iterable.com";
+  static const email3 = "flutter.example3@iterable.com";
+}
+```
 
 
 #### ***When Published Live***
