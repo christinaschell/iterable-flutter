@@ -479,8 +479,8 @@ public class SwiftIterablePlugin: NSObject, FlutterPlugin {
             IterableAPI.initialize2(apiKey: apiKey,
                                     launchOptions: nil,
                                     config: iterableConfig,
-                                    apiEndPointOverride: apiEndPointOverride) { completionResult in
-                result(completionResult)
+                                    apiEndPointOverride: apiEndPointOverride) { _ in
+                result(true)
             }
 
             IterableAPI.setDeviceAttribute(name: IterableConstants.sdkVersion, value: version)
