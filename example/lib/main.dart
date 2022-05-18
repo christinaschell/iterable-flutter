@@ -35,7 +35,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
     config.inAppHandler = inAppHandler;
     config.urlHandler = urlHandler;
     config.customActionHandler = customActionHandler;
-    // config.authHandler = authHandler; // uncomment to test JWT
+    config.authHandler = authHandler; // uncomment to test JWT
 
     // Initialize Iterable
     IterableAPI.initialize(IterableEnv.apiKey, config).then((success) => {
