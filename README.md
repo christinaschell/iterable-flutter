@@ -982,7 +982,19 @@ IterableAPI.inAppManager.setAutoDisplayPaused(true)
 
 # FAQ
 
-TODO
+ 1. How do I logout a user?<br><br>
+    **Answer:** There is no explicit `logout()` method in the API, but you can easily log out a user by setting `email` and/or `userId` to `null`.<br>
+
+	Example:
+	
+	```
+	LogoutButton(
+	    title: 'Logout',
+	    onPressed: () => {
+	          IterableAPI.setEmail(null),
+	          IterableAPI.setUserId(null),
+	        })
+	```
 
 # Contributing
 
